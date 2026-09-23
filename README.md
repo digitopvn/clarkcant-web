@@ -10,7 +10,7 @@ npm run deploy     # copy public files to dist/ and publish to Cloudflare Pages 
 npm run og         # re-render assets/img/og-image.png from scripts/og-card.html (needs npm start + Chrome)
 ```
 
-Live at https://clarkcant.pages.dev. Only `index.html`, `404.html` and `assets/` are published. `404.html` uses root-absolute paths, so serve the site from a domain root; if the domain changes, update `og:image` in `index.html`.
+Live at https://clarkcant.cc (also https://clarkcant.pages.dev). Only `index.html`, `404.html` and `assets/` are published. `404.html` uses root-absolute paths, so serve the site from a domain root; if the domain changes, update `og:image` in `index.html`.
 
 ## Layout
 
