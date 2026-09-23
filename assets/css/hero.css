@@ -1,0 +1,79 @@
+/* Hero: the page opens on the Orb and a composer, and gives way to a conversation once used. */
+
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1.5rem, 3.2svh, 2.75rem);
+  padding: 5.5rem var(--gutter) 2.5rem;
+  text-align: center;
+}
+
+/* A faint horizon of light behind the Orb: the only gradient on the page that isn't the Orb itself. */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 90svh;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 50% 30%, color-mix(in srgb, var(--halo) 70%, transparent), transparent 70%);
+}
+
+.hero__stage { display: flex; flex-direction: column; align-items: center; }
+.orb--hero {
+  width: min(clamp(190px, 18vw + 110px, 380px), 33svh);
+  margin-bottom: clamp(0.5rem, 1vw, 1.25rem);
+  transition: width 900ms var(--ease-out), margin 900ms var(--ease-out);
+}
+.hero__eyebrow { margin-bottom: var(--space-4); }
+.hero__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: min(var(--step-5), 10.5svh);
+  line-height: 0.92;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+  transition: font-size 900ms var(--ease-out);
+}
+.hero__title em {
+  font-style: italic;
+  background: var(--spectrum);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  padding-right: 0.08em;
+  margin-right: -0.06em;
+  filter: var(--spectrum-filter);
+}
+.hero__lede {
+  margin-top: clamp(0.75rem, 2.2svh, 1.5rem);
+  max-width: 33rem;
+  font-size: var(--step-1);
+  color: var(--text-muted);
+  text-wrap: balance;
+  transition: opacity var(--dur) ease;
+}
+
+.hero__chat { width: min(100%, 42rem); display: flex; flex-direction: column; gap: var(--space-4); }
+.hero__note {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  font-size: 0.8125rem; color: var(--text-faint);
+}
+.hero__note .dot { background: var(--accent); flex: none; }
+@media (max-width: 560px) { .hero__note { text-align: left; } }
+
+/* Once the visitor talks to Clark, the hero steps back and the conversation takes the room. */
+.hero[data-active] { justify-content: flex-start; }
+.hero[data-active] .orb--hero { width: clamp(96px, 8vw + 60px, 140px); margin-bottom: 0; }
+.hero[data-active] .hero__title { font-size: var(--step-3); }
+.hero[data-active] .hero__eyebrow,
+.hero[data-active] .hero__lede { display: none; }
+
+@media (max-width: 560px) {
+  .hero { padding-top: 5.5rem; }
+}

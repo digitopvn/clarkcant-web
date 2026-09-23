@@ -1,0 +1,188 @@
+/*
+ * The story: a pinned stage with the Orb, and three chapters that scroll past it.
+ * `data-chapter` on the section (set by story-chapters.js) drives every change on the stage:
+ *   1 — Clark couldn't: grey Orb behind bars, surrounded by refusals.
+ *   2 — Then Clark could: the bars lift, refusals give way to a quiet activity trail.
+ *   3 — ClarkCant Can: the Orb in full colour, and the name.
+ */
+
+.story {
+  position: relative;
+  overflow: clip; /* refusal bubbles never leak into neighbouring sections */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  max-width: calc(var(--max) + 4rem);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.story__stage {
+  grid-column: 2;
+  grid-row: 1;
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: grid;
+  place-items: center;
+}
+.story__scene { position: relative; width: min(38vw, 520px); aspect-ratio: 1; }
+
+.orb--story {
+  position: absolute;
+  inset: 8%;
+  transition: filter 900ms var(--ease-out), transform 900ms var(--ease-out);
+}
+.story[data-chapter="1"] .orb--story { filter: grayscale(1) contrast(0.9); transform: scale(0.86); }
+.story[data-chapter="1"] .orb--story::before { opacity: 0; }
+
+/* The cage. Bars sit in front of the Orb so it reads as held back, not decorated. */
+.cage { position: absolute; inset: 0; z-index: 2; color: var(--text-faint); pointer-events: none; }
+.cage__ring { stroke-width: 1; stroke-dasharray: 3 7; opacity: 0.55; transition: opacity var(--dur-slow) ease, transform 1.2s var(--ease-out); transform-origin: center; }
+.cage__ring--outer { stroke-dasharray: 1 9; opacity: 0.35; }
+.cage__bars path {
+  stroke-width: 1.4;
+  transform-origin: center;
+  transition: transform 900ms var(--ease-out), opacity 700ms ease;
+}
+.story:not([data-chapter="1"]) .cage__bars path { opacity: 0; transform: scaleY(0); }
+.story:not([data-chapter="1"]) .cage__bars path:nth-child(2n) { transition-delay: 90ms; }
+.story:not([data-chapter="1"]) .cage__ring { opacity: 0; transform: scale(1.15); }
+
+/* Refusals: the wall of "no". */
+.story__refusals li,
+.story__activity {
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  background: var(--elevated);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+.story__refusals li {
+  position: absolute;
+  left: var(--l);
+  top: var(--t);
+  z-index: 3;
+  max-width: 14rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 14px;
+  color: var(--text-muted);
+  opacity: 0;
+  transform: translateY(8px) scale(0.97);
+  transition: opacity 500ms ease, transform 500ms var(--ease-out);
+}
+.story[data-live][data-chapter="1"] .story__refusals li {
+  opacity: 1;
+  transform: none;
+  transition-delay: var(--d);
+  animation: nag 5s var(--d) ease-in-out infinite;
+}
+@keyframes nag { 0%, 88%, 100% { translate: 0 0; } 91% { translate: -3px 0; } 94% { translate: 3px 0; } 97% { translate: -2px 0; } }
+
+/* Activity: what "could" looks like — a short trail and a Stop that always works. */
+.story__activity {
+  position: absolute;
+  right: -4%;
+  bottom: 4%;
+  z-index: 3;
+  width: min(15.5rem, 70%);
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius);
+  display: grid;
+  gap: 0.45rem;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 500ms ease, transform 600ms var(--ease-out);
+}
+.story__activity li { display: flex; align-items: center; gap: 0.55rem; color: var(--text-muted); opacity: 0; transition: opacity 400ms ease; }
+.story[data-chapter="2"] .story__activity { opacity: 1; transform: none; transition-delay: 250ms; }
+.story[data-chapter="2"] .story__activity li { opacity: 1; }
+.story[data-chapter="2"] .story__activity li:nth-child(1) { transition-delay: 450ms; }
+.story[data-chapter="2"] .story__activity li:nth-child(2) { transition-delay: 800ms; }
+.story[data-chapter="2"] .story__activity li:nth-child(3) { transition-delay: 1150ms; }
+.story[data-chapter="2"] .story__activity li:nth-child(4) { transition-delay: 1500ms; }
+.story[data-chapter="2"] .story__activity li:nth-child(5) { transition-delay: 1850ms; }
+.tick { width: 0.9rem; height: 0.9rem; border-radius: 50%; background: var(--success); flex: none; position: relative; }
+.tick::after { content: ""; position: absolute; left: 0.3rem; top: 0.17rem; width: 0.22rem; height: 0.42rem; border: solid var(--card); border-width: 0 1.6px 1.6px 0; transform: rotate(45deg); }
+.story__stop { margin-top: 0.2rem; padding-top: 0.55rem; border-top: 1px solid var(--line); color: var(--text) !important; font-weight: 500; }
+.stop-square { width: 0.9rem; height: 0.9rem; border-radius: 3px; background: var(--text); flex: none; transform: scale(0.72); }
+
+/* The name, arriving last. */
+.story__wordmark {
+  position: absolute;
+  left: 50%;
+  bottom: -9%;
+  translate: -50% 0;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 1.2rem + 2.6vw, 3.6rem);
+  letter-spacing: -0.03em;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 700ms ease, transform 900ms var(--ease-out);
+}
+.story__wordmark em { font-style: italic; background: var(--spectrum); -webkit-background-clip: text; background-clip: text; color: transparent; filter: var(--spectrum-filter); }
+.story[data-chapter="3"] .story__wordmark { opacity: 1; transform: none; transition-delay: 300ms; }
+.story[data-chapter="3"] .orb--story { transform: scale(1.04); }
+
+/* Chapters */
+.story__chapters { grid-column: 1; grid-row: 1; }
+.chapter {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-4);
+  max-width: 30rem;
+  padding: var(--space-8) 0;
+  opacity: 0.28;
+  transition: opacity 600ms ease;
+}
+.chapter.is-current { opacity: 1; }
+.chapter p { color: var(--text-muted); font-size: var(--step-1); line-height: 1.6; text-wrap: pretty; }
+.chapter__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--step-4);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--space-3);
+}
+.chapter__title em { font-style: italic; }
+.chapter .chapter__aside { font-family: var(--font-display); font-style: italic; font-size: var(--step-2); color: var(--text); }
+.strike { position: relative; white-space: nowrap; }
+.strike::after {
+  content: "";
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  top: 55%;
+  height: 0.06em;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 800ms var(--ease-out) 300ms;
+}
+.story:not([data-chapter="1"]) .strike::after { transform: scaleX(1); }
+
+/* Phones: the stage pins to the top half, chapters scroll up underneath it. */
+@media (max-width: 900px) {
+  .story { grid-template-columns: minmax(0, 1fr); }
+  .story__stage {
+    grid-column: 1;
+    height: 56svh;
+    top: 0;
+    z-index: 2;
+    padding-top: 3.5rem;
+    background: linear-gradient(var(--bg) 90%, transparent);
+  }
+  .story__scene { width: min(64vw, 330px); }
+  .story__chapters { grid-row: 2; }
+  .chapter { min-height: 72svh; padding: 0 0 var(--space-8); justify-content: flex-start; }
+  .story__refusals li { font-size: 0.72rem; max-width: 10.5rem; }
+  .story__activity { font-size: 0.72rem; right: -8%; }
+  .story__wordmark { bottom: -3%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story[data-live][data-chapter="1"] .story__refusals li { animation: none; }
+}

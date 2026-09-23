@@ -1,0 +1,37 @@
+<!doctype html>
+<!--
+  Source for assets/img/og-image.png (1200×630). Regenerate with `npm run og` while `npm start` is running.
+  Uses the site's real Orb renderer so the share card matches the page.
+-->
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>ClarkCant share card</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400&family=Instrument+Serif:ital@0;1&display=swap">
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/orb.css">
+  <style>
+    html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: var(--bg); color: var(--text); }
+    .card { display: grid; grid-template-columns: 520px 1fr; align-items: center; height: 100%; padding: 0 80px 0 40px; box-sizing: border-box; }
+    .orb { width: 460px; justify-self: center; }
+    .eyebrow { font-family: var(--font-mono); font-size: 20px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-faint); }
+    h1 { font-family: var(--font-display); font-weight: 400; font-size: 112px; line-height: 0.95; letter-spacing: -0.03em; margin: 22px 0 28px; }
+    h1 em { background: var(--spectrum); -webkit-background-clip: text; background-clip: text; color: transparent; filter: var(--spectrum-filter); padding-right: 0.08em; }
+    p { font-family: var(--font-sans); font-size: 28px; line-height: 1.4; color: var(--text-muted); margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="orb"><canvas data-orb></canvas></div>
+    <div>
+      <div class="eyebrow">Open-source AI agent</div>
+      <h1>ClarkCant <em>Can.</em></h1>
+      <p>Type what you want, or say it.<br>Clark handles the rest.</p>
+    </div>
+  </div>
+  <script type="module">
+    import { mountOrb } from "../assets/js/orb/mount-orb.js";
+    mountOrb(document.querySelector("canvas[data-orb]"), { maxPixelRatio: 2 });
+  </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+/*
+ * The Orb.
+ *
+ * The canvas draws a transparent, premultiplied Orb that composites over any surface. The
+ * wrapper adds a soft halo under it so the glow still reads on paper. The fallback (no WebGL)
+ * is the same idea in CSS: an ink sphere with a spectral lens across its equator.
+ */
+
+.orb {
+  position: relative;
+  aspect-ratio: 1;
+  isolation: isolate;
+}
+.orb::before {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--halo), transparent 72%);
+  filter: blur(18px);
+  transform: scale(1.35);
+  transition: opacity var(--dur-slow) var(--ease-out);
+}
+.orb canvas {
+  width: 100%;
+  height: 100%;
+  touch-action: manipulation;
+}
+
+/* Static Orb for browsers without WebGL. The canvas stays for layout, the art moves here. */
+.orb--fallback canvas { visibility: hidden; }
+.orb--fallback::after,
+.orb-mark {
+  background:
+    radial-gradient(ellipse 34% 20% at 36% 30%, rgb(234 244 255 / 0.28), transparent 70%),
+    radial-gradient(ellipse 58% 9% at 50% 51%, rgb(255 255 255 / 0.95), transparent 70%),
+    radial-gradient(ellipse 80% 22% at 50% 51%, rgb(255 216 107 / 0.55), transparent 70%),
+    linear-gradient(90deg, transparent 12%, rgb(130 244 255 / 0.55) 26%, rgb(255 123 255 / 0.5) 66%, rgb(142 108 255 / 0.6) 82%, transparent 92%) center / 100% 22% no-repeat,
+    radial-gradient(circle at 50% 50%, #140f2a 0%, #07080f 70%);
+  box-shadow: 0 0 0 1px rgb(197 169 255 / 0.25) inset, 0 0 24px -4px rgb(149 108 255 / 0.55);
+}
+.orb--fallback::after {
+  content: "";
+  position: absolute;
+  inset: 14%;
+  border-radius: 50%;
+}
+
+/* The small Orb in the header and footer: always the CSS version, cheap and crisp. */
+.orb-mark {
+  display: inline-block;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: 0 0 0 1px rgb(197 169 255 / 0.3) inset, 0 0 12px -2px rgb(149 108 255 / 0.6);
+  transition: transform var(--dur) var(--ease-spring);
+}
+.orb-mark--sm { width: 1rem; height: 1rem; }
+.brand:hover .orb-mark { transform: scale(1.12); }
