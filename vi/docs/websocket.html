@@ -98,7 +98,7 @@
   <tbody>
     <tr><td><code>auth</code></td><td>client → node</td><td><code>{ type, token }</code>, chỉ ở frame đầu</td></tr>
     <tr><td><code>ready</code></td><td>node → client</td><td><code>{ type, protocol: "clarkcant.ws.v1" }</code></td></tr>
-    <tr><td><code>request</code></td><td>client → node</td><td><code>{ type, id, method, path, query?, body? }</code>: bất kỳ route REST nào, trừ route quyết định phê duyệt (<code>403 PERSON_ONLY</code>); tham số query đặt trong <code>query</code>, không đặt trong <code>path</code></td></tr>
+    <tr><td><code>request</code></td><td>client → node</td><td><code>{ type, id, method, path, query?, body? }</code>: bất kỳ route REST nào, trừ các quyết định của con người (<code>403 PERSON_ONLY</code>); <code>id</code> được trả lại đúng như gửi, chuỗi hoặc số; tham số query đặt trong <code>query</code>, không đặt trong <code>path</code></td></tr>
     <tr><td><code>event</code></td><td>node → client</td><td><code>{ type, id, event, data }</code>: mỗi sự kiện SSE một frame, trên các route stream</td></tr>
     <tr><td><code>response</code></td><td>node → client</td><td><code>{ type, id, status, body }</code>: luôn là frame cuối của <code>id</code> đó; <code>body</code> là <code>null</code> sau một stream</td></tr>
     <tr><td><code>ping</code> / <code>pong</code></td><td>cả hai</td><td><code>{ "type": "ping" }</code> → <code>{ "type": "pong" }</code></td></tr>

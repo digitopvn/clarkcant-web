@@ -117,7 +117,7 @@
     <tr><td><code>node_status</code></td><td><code>{}</code></td><td>Giống <code>GET /node</code>.</td></tr>
   </tbody>
 </table></div>
-<p class="note"><strong>Cố ý không có tool phê duyệt.</strong> Phê duyệt nằm trên giao diện của chính người dùng. Một client AI không được phép tự phê duyệt hành động cần kiểm soát của chính nó.</p>
+<p class="note"><strong>Cố ý không có tool phê duyệt.</strong> Các quyết định của con người (phê duyệt hành động cần kiểm soát, quyết định năng lực của package, xác nhận ý định với ứng dụng, tin cậy một peer đã ghép cặp hoặc cấp quyền) nằm trên giao diện của chính người dùng; MCP, WebSocket và <code>clarkcant api</code> từ chối chúng với <code>403 PERSON_ONLY</code>. Một client AI không được tự phê duyệt hành động hay tự nới rộng quyền tin cậy của chính nó. Dừng, trả lời câu hỏi và đọc vẫn dùng được; tài liệu discovery liệt kê các route này dưới <code>personDecisions</code>.</p>
 
 <h2 id="raw">JSON-RPC thô</h2>
 <p>MCP client làm việc này thay bạn. Để xem định dạng trên dây, hoặc gọi tool từ script:</p>

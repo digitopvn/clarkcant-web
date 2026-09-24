@@ -117,7 +117,7 @@
     <tr><td><code>node_status</code></td><td><code>{}</code></td><td>Same as <code>GET /node</code>.</td></tr>
   </tbody>
 </table></div>
-<p class="note"><strong>No approval tool, on purpose.</strong> Approvals stay on the person's own surfaces. An AI client must not be able to approve its own guarded action.</p>
+<p class="note"><strong>No approval tool, on purpose.</strong> A person's decisions (approving a guarded action, deciding a package capability, confirming an app intent, trusting a paired peer or issuing a grant) stay on the person's own surfaces, and MCP, the WebSocket and <code>clarkcant api</code> refuse them with <code>403 PERSON_ONLY</code>. An AI client must not be able to approve its own action or widen its own trust. Stop, answering a question and reading stay available; the discovery document lists these routes under <code>personDecisions</code>.</p>
 
 <h2 id="raw">Raw JSON-RPC</h2>
 <p>MCP clients do this for you. To see the wire format, or to call the tools from a script:</p>

@@ -93,7 +93,7 @@ alias clarkcant="node $PWD/apps/cli/src/main.ts"</code></pre>
   <thead><tr><th>Cờ</th><th>Biến môi trường</th><th>Mặc định</th></tr></thead>
   <tbody>
     <tr><td><code>--url</code></td><td><code>CLARKCANT_URL</code></td><td><code>http://127.0.0.1:8765</code></td></tr>
-    <tr><td><code>--token</code></td><td><code>CLARKCANT_TOKEN</code></td><td>Đọc từ <code>identity.json</code> trong thư mục dữ liệu</td></tr>
+    <tr><td><code>--token</code></td><td><code>CLARKCANT_TOKEN</code></td><td>Đọc từ <code>identity.json</code> trong thư mục dữ liệu, chỉ khi node ở trên máy này (<code>localhost</code>, <code>127.x</code>, <code>::1</code>); <code>--url</code> trỏ tới máy khác cần <code>--token</code>, nên token cục bộ không bao giờ rời khỏi máy</td></tr>
     <tr><td><code>--data-dir</code></td><td><code>CLARKCANT_DATA_DIR</code></td><td><code>~/.clarkcant</code></td></tr>
     <tr><td><code>--json</code></td><td>–</td><td>In JSON thô</td></tr>
   </tbody>
@@ -116,7 +116,7 @@ clarkcant status</code></pre>
     <tr><td><code>clarkcant new [title]</code></td><td>Tạo cuộc trò chuyện.</td></tr>
     <tr><td><code>clarkcant read &lt;conversationId&gt;</code></td><td>In cuộc trò chuyện.</td></tr>
     <tr><td><code>clarkcant stop</code></td><td>Dừng khẩn cấp.</td></tr>
-    <tr><td><code>clarkcant api &lt;METHOD&gt; &lt;path&gt; [jsonBody]</code></td><td>Gọi thô tới bất kỳ <a href="api.html#routes">route REST</a> nào, trừ route quyết định phê duyệt (việc đó do con người quyết định).</td></tr>
+    <tr><td><code>clarkcant api &lt;METHOD&gt; &lt;path&gt; [jsonBody]</code></td><td>Gọi thô tới bất kỳ <a href="api.html#routes">route REST</a> nào, trừ các quyết định của con người (phê duyệt hành động cần kiểm soát, quyết định năng lực của package, xác nhận ý định với ứng dụng, tin cậy một peer đã ghép cặp hoặc cấp quyền), trả về <code>403 PERSON_ONLY</code>.</td></tr>
     <tr><td><code>clarkcant mcp</code></td><td>MCP server qua stdio, nối tới <code>/mcp</code> của node (xem <a href="mcp.html#connect">MCP</a>).</td></tr>
     <tr><td><code>clarkcant discover</code></td><td>In <code>/.well-known/clarkcant.json</code>.</td></tr>
   </tbody>
