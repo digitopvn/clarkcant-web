@@ -98,7 +98,7 @@
   <tbody>
     <tr><td><code>auth</code></td><td>client → node</td><td><code>{ type, token }</code>, first frame only</td></tr>
     <tr><td><code>ready</code></td><td>node → client</td><td><code>{ type, protocol: "clarkcant.ws.v1" }</code></td></tr>
-    <tr><td><code>request</code></td><td>client → node</td><td><code>{ type, id, method, path, query?, body? }</code>: any REST route; query parameters go in <code>query</code>, not in <code>path</code></td></tr>
+    <tr><td><code>request</code></td><td>client → node</td><td><code>{ type, id, method, path, query?, body? }</code>: any REST route except an approval decision (<code>403 PERSON_ONLY</code>); query parameters go in <code>query</code>, not in <code>path</code></td></tr>
     <tr><td><code>event</code></td><td>node → client</td><td><code>{ type, id, event, data }</code>: one per SSE event on streamed routes</td></tr>
     <tr><td><code>response</code></td><td>node → client</td><td><code>{ type, id, status, body }</code>: always last for its <code>id</code>; <code>body</code> is <code>null</code> after a stream</td></tr>
     <tr><td><code>ping</code> / <code>pong</code></td><td>both</td><td><code>{ "type": "ping" }</code> → <code>{ "type": "pong" }</code></td></tr>

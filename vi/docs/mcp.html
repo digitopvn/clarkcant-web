@@ -112,7 +112,7 @@
     <tr><td><code>list_conversations</code></td><td><code>{}</code></td><td>Liệt kê cuộc trò chuyện.</td></tr>
     <tr><td><code>create_conversation</code></td><td><code>{ title? }</code></td><td>Tạo cuộc trò chuyện.</td></tr>
     <tr><td><code>read_conversation</code></td><td><code>{ conversationId, after? }</code></td><td>Timeline dạng văn bản kèm nội dung có cấu trúc.</td></tr>
-    <tr><td><code>answer_question</code></td><td><code>{ conversationId, questionId, text?, optionIds? }</code></td><td>Trả lời câu hỏi mà Clark đặt ra.</td></tr>
+    <tr><td><code>answer_question</code></td><td><code>{ conversationId, questionId, text?, optionIds?, confirmed? }</code></td><td>Trả lời câu hỏi mà Clark đặt ra; <code>confirmed</code> dùng cho câu hỏi có/không.</td></tr>
     <tr><td><code>stop_all_work</code></td><td><code>{}</code></td><td>Giống <code>POST /stop</code>.</td></tr>
     <tr><td><code>node_status</code></td><td><code>{}</code></td><td>Giống <code>GET /node</code>.</td></tr>
   </tbody>
