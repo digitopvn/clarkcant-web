@@ -11,7 +11,9 @@ export function initThemeToggle() {
   const apply = (mode) => {
     root.dataset.theme = mode;
     button.dataset.mode = mode;
-    button.setAttribute("aria-label", `Theme: ${mode}. Switch theme`);
+    // Pages in another language carry their own label template; `{mode}` is replaced with the current mode.
+    const template = button.dataset.themeLabel ?? "Theme: {mode}. Switch theme";
+    button.setAttribute("aria-label", template.replace("{mode}", mode));
     try {
       if (mode === "system") localStorage.removeItem("cc-theme"); else localStorage.setItem("cc-theme", mode);
     } catch { /* storage may be unavailable; the choice still applies for this visit */ }

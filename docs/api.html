@@ -98,15 +98,14 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
 <div class="table-wrap" tabindex="0"><table>
   <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Notes</th></tr></thead>
   <tbody>
-    <tr><td>GET</td><td><code>/node</code></td><td>–</td><td>Node label, capabilities, status.</td></tr>
+    <tr><td>GET</td><td><code>/node</code></td><td>–</td><td>Node id, label, fingerprint and configured model (<code>model</code> is <code>null</code> when none is set).</td></tr>
     <tr><td>GET</td><td><code>/conversations</code></td><td>–</td><td>List conversations.</td></tr>
     <tr><td>POST</td><td><code>/conversations</code></td><td><code>{ title? }</code></td><td><code>201 { conversationId, homeNodeId }</code></td></tr>
-    <tr><td>POST</td><td><code>/conversations/{id}/messages</code></td><td><code>{ text, attachmentIds? }</code></td><td>Waits for the answer; returns <code>{ resolution, taskId, messageIds, timeline }</code>.</td></tr>
+    <tr><td>POST</td><td><code>/conversations/{id}/messages</code></td><td><code>{ text, attachmentIds? }</code></td><td>Waits for the answer; returns <code>{ resolution, taskId, messageIds, timeline }</code>, or <code>202</code> when the work continues in the background (read the timeline later).</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/messages/stream</code></td><td><code>{ text, attachmentIds? }</code></td><td>Streams the reply as Server-Sent Events (below).</td></tr>
     <tr><td>GET</td><td><code>/conversations/{id}/timeline?after=N</code></td><td>–</td><td>Messages (blocks: text/markdown, tool activity, reasoning, widgets…), pins, widget instances.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/questions/{questionId}/answer</code></td><td><code>{ text?, optionIds?, confirmed? }</code></td><td>Answers an <code>ask_user_question</code>; starts a new turn.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/questions/{questionId}/cancel</code></td><td>–</td><td>Cancels the question.</td></tr>
-    <tr><td>POST</td><td><code>/conversations/{id}/approvals/{approvalId}/decide</code></td><td>–</td><td>Approval decision. A human surface, deliberately not an MCP tool.</td></tr>
     <tr><td>POST</td><td><code>/stop</code></td><td>–</td><td>Emergency stop: kills running commands, interrupts turns, stops background work.</td></tr>
   </tbody>
 </table></div>
@@ -131,6 +130,7 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
 # → { "resolution": …, "taskId": "…", "messageIds": […], "timeline": … }</code></pre>
 </div>
 <p>A typed sentence like “open settings” is resolved as an app intent by the host (<code>appIntent</code> in the response) instead of reaching the model.</p>
+<p class="note">Approvals are decided by a person on their own surfaces. That route is outside the stable description and is deliberately not exposed as an MCP tool.</p>
 
 <h2 id="stream">Stream the reply (SSE)</h2>
 <div class="code" data-code>
@@ -148,7 +148,7 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
     <tr><td><code>tool-start</code>, <code>tool-end</code></td><td>A tool call began or finished.</td></tr>
     <tr><td><code>host-control</code></td><td>A control event for the host app.</td></tr>
     <tr><td><code>error</code></td><td>The turn hit an error.</td></tr>
-    <tr><td><code>done</code></td><td>Final event: <code>{ resolution, messageIds, timeline }</code>.</td></tr>
+    <tr><td><code>done</code></td><td>Final event: <code>{ resolution, taskId, messageIds, timeline }</code>.</td></tr>
   </tbody>
 </table></div>
 <p>From JavaScript:</p>

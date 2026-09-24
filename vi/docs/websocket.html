@@ -42,7 +42,7 @@
       <span class="docs-tag">Tài liệu</span>
       <div class="site-header__actions">
         <a class="lang-switch" href="../../docs/websocket.html" hreflang="en" lang="en" aria-label="Read in English" title="English">EN</a>
-        <button class="icon-button" type="button" data-theme-toggle aria-label="Theme: system">
+        <button class="icon-button" type="button" data-theme-toggle data-theme-label="Giao diện: {mode}. Đổi giao diện" aria-label="Giao diện: system">
           <svg class="i-system" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>
           <svg class="i-light" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>
           <svg class="i-dark" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
@@ -98,14 +98,15 @@
   <tbody>
     <tr><td><code>auth</code></td><td>client → node</td><td><code>{ type, token }</code>, chỉ ở frame đầu</td></tr>
     <tr><td><code>ready</code></td><td>node → client</td><td><code>{ type, protocol: "clarkcant.ws.v1" }</code></td></tr>
-    <tr><td><code>request</code></td><td>client → node</td><td><code>{ type, id, method, path, body }</code>: bất kỳ route REST nào</td></tr>
+    <tr><td><code>request</code></td><td>client → node</td><td><code>{ type, id, method, path, query?, body? }</code>: bất kỳ route REST nào; tham số query đặt trong <code>query</code>, không đặt trong <code>path</code></td></tr>
     <tr><td><code>event</code></td><td>node → client</td><td><code>{ type, id, event, data }</code>: mỗi sự kiện SSE một frame, trên các route stream</td></tr>
     <tr><td><code>response</code></td><td>node → client</td><td><code>{ type, id, status, body }</code>: luôn là frame cuối của <code>id</code> đó; <code>body</code> là <code>null</code> sau một stream</td></tr>
     <tr><td><code>ping</code> / <code>pong</code></td><td>cả hai</td><td><code>{ "type": "ping" }</code> → <code>{ "type": "pong" }</code></td></tr>
   </tbody>
 </table></div>
 <ul>
-  <li>Các request có thể chạy song song; mỗi request một <code>id</code> riêng.</li>
+  <li>Mỗi socket chạy song song tối đa 16 request; mỗi request một <code>id</code> riêng.</li>
+  <li>Request bị từ chối (<code>INVALID_FRAME</code>, <code>TOO_MANY_REQUESTS</code>) nhận frame <code>{ type: "error", id, code, message }</code> thay cho <code>response</code>; đó là frame cuối của <code>id</code> đó.</li>
   <li>Tên sự kiện giống hệt <a href="api.html#stream">luồng SSE</a>: <code>delta</code>, <code>reasoning</code>, <code>tool-start</code>, <code>tool-end</code>, <code>host-control</code>, <code>error</code>, <code>done</code>.</li>
   <li>Route nhị phân (file đính kèm, ảnh) trả <code>415 USE_HTTP</code>: dùng HTTP cho dữ liệu nhị phân.</li>
 </ul>
