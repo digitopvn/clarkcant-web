@@ -302,15 +302,18 @@
 
         <article class="card quickstart">
           <h3>Try it from source</h3>
-          <p>Needs Node.js 22.19+ and pnpm. A friendlier installer is on the way.</p>
+          <p>Needs Node.js 22.19+. The installer clones the repo, then walks you through the model, your key and where Clark runs: on this machine or in Docker.</p>
           <div class="code" data-code>
             <button class="code__copy" type="button" data-copy>Copy</button>
-<pre><code>git clone https://github.com/digitopvn/clarkcant
-cd clarkcant
-corepack enable
-pnpm install
-node apps/runtime/src/main.ts --data-dir ./.data</code></pre>
+<pre><code># macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/digitopvn/clarkcant/main/tools/install.sh | sh</code></pre>
           </div>
+          <div class="code" data-code>
+            <button class="code__copy" type="button" data-copy>Copy</button>
+<pre><code># Windows PowerShell
+irm https://raw.githubusercontent.com/digitopvn/clarkcant/main/tools/install.ps1 | iex</code></pre>
+          </div>
+          <p><a class="text-link" href="https://github.com/digitopvn/clarkcant/blob/main/docs/installation.md" rel="noopener">Docker, VPS with HTTPS and manual setup →</a></p>
           <div class="quickstart__links">
             <a class="button" href="https://github.com/digitopvn/clarkcant" rel="noopener">Star on GitHub</a>
             <a class="button button--quiet" href="https://github.com/digitopvn/clarkcant/issues" rel="noopener">Share an idea</a>
