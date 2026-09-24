@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CLI · ClarkCant docs</title>
+  <meta name="description" content="The clarkcant command: ask Clark, manage conversations, stop work and call any route from a terminal.">
+  <meta name="theme-color" content="#F6F5F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0C0D11" media="(prefers-color-scheme: dark)">
+  <link rel="canonical" href="https://clarkcant.cc/docs/cli">
+  <link rel="alternate" hreflang="en" href="https://clarkcant.cc/docs/cli">
+  <link rel="alternate" hreflang="vi" href="https://clarkcant.cc/vi/docs/cli">
+  <link rel="alternate" hreflang="x-default" href="https://clarkcant.cc/docs/cli">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="CLI · ClarkCant docs">
+  <meta property="og:description" content="The clarkcant command: ask Clark, manage conversations, stop work and call any route from a terminal.">
+  <meta property="og:image" content="https://clarkcant.cc/assets/img/og-image.png">
+  <meta property="og:locale" content="en_US">
+  <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+  <script>
+    // Applied before first paint so a stored theme never flashes the other one.
+    try { const t = localStorage.getItem("cc-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
+  </script>
+  <link rel="stylesheet" href="../assets/css/tokens.css">
+  <link rel="stylesheet" href="../assets/css/base.css">
+  <link rel="stylesheet" href="../assets/css/sections.css">
+  <link rel="stylesheet" href="../assets/css/docs.css">
+  <script type="module" src="../assets/js/docs.js"></script>
+</head>
+<body class="docs">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="../" aria-label="ClarkCant, home">
+        <span class="orb-mark" aria-hidden="true"></span>
+        <span class="brand__name">Clark<span>Cant</span></span>
+      </a>
+      <span class="docs-tag">Docs</span>
+      <div class="site-header__actions">
+        <a class="lang-switch" href="../vi/docs/cli.html" hreflang="vi" lang="vi" aria-label="Đọc bằng tiếng Việt" title="Tiếng Việt">VI</a>
+        <button class="icon-button" type="button" data-theme-toggle aria-label="Theme: system">
+          <svg class="i-system" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>
+          <svg class="i-light" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>
+          <svg class="i-dark" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+        </button>
+        <a class="button button--quiet button--small" href="https://github.com/digitopvn/clarkcant" rel="noopener" aria-label="GitHub">
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="gh"><path fill="currentColor" stroke="none" d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.5 9.5 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="docs-layout">
+    <nav class="docs-menu" aria-label="Docs pages">
+      <p class="eyebrow docs-menu__title">Developer docs</p>
+      <ul>
+          <li><a href="./">Overview</a></li>
+          <li><a href="api.html">REST &amp; SSE</a></li>
+          <li><a href="mcp.html">MCP</a></li>
+          <li><a href="websocket.html">WebSocket</a></li>
+          <li><a href="cli.html" aria-current="page">CLI</a></li>
+      </ul>
+    </nav>
+
+    <main id="main" class="prose">
+<p class="eyebrow">CLI</p>
+<h1>The <code>clarkcant</code> command</h1>
+<p class="lede">Ask Clark, read and create conversations, stop work or call any route, from a terminal or a script.</p>
+
+<h2 id="install">Run it from a checkout</h2>
+<p>The CLI is the workspace package <code>@clarkcant/cli</code> in <code>apps/cli</code>. <strong>It is not published to npm yet</strong>, so run it from a ClarkCant checkout:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code># The CLI is the workspace package @clarkcant/cli (apps/cli). It is not on npm yet.
+git clone https://github.com/digitopvn/clarkcant.git
+cd clarkcant
+corepack enable &amp;&amp; pnpm install
+
+node apps/cli/src/main.ts ask "hello"
+pnpm clarkcant ask "hello"
+
+# Optional: a shell alias so the examples below work as written
+alias clarkcant="node $PWD/apps/cli/src/main.ts"</code></pre>
+</div>
+
+<h2 id="connection">Connection</h2>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Flag</th><th>Environment</th><th>Default</th></tr></thead>
+  <tbody>
+    <tr><td><code>--url</code></td><td><code>CLARKCANT_URL</code></td><td><code>http://127.0.0.1:8765</code></td></tr>
+    <tr><td><code>--token</code></td><td><code>CLARKCANT_TOKEN</code></td><td>Read from <code>identity.json</code> in the data dir, only for a node on this machine (<code>localhost</code>, <code>127.x</code>, <code>::1</code>); a remote <code>--url</code> needs <code>--token</code>, so the local token never leaves the machine</td></tr>
+    <tr><td><code>--data-dir</code></td><td><code>CLARKCANT_DATA_DIR</code></td><td><code>~/.clarkcant</code></td></tr>
+    <tr><td><code>--json</code></td><td>–</td><td>Print raw JSON</td></tr>
+  </tbody>
+</table></div>
+<p>On the machine that runs the node, with the default data dir, it needs no flags. For a node elsewhere, set the URL and token:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>export CLARKCANT_URL="https://clark.example.com"
+export CLARKCANT_TOKEN="&lt;token&gt;"
+clarkcant status</code></pre>
+</div>
+
+<h2 id="commands">Commands</h2>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>clarkcant ask "&lt;text&gt;" [-c &lt;conversationId&gt;]</code></td><td>Streams Clark's reply to stdout. Without <code>-c</code> it creates a conversation and prints its id on stderr.</td></tr>
+    <tr><td><code>clarkcant status</code></td><td>Health and node.</td></tr>
+    <tr><td><code>clarkcant conversations</code></td><td>Lists conversations.</td></tr>
+    <tr><td><code>clarkcant new [title]</code></td><td>Creates a conversation.</td></tr>
+    <tr><td><code>clarkcant read &lt;conversationId&gt;</code></td><td>Prints the conversation.</td></tr>
+    <tr><td><code>clarkcant stop</code></td><td>Emergency stop.</td></tr>
+    <tr><td><code>clarkcant api &lt;METHOD&gt; &lt;path&gt; [jsonBody]</code></td><td>Raw call to any <a href="api.html#routes">REST route</a> except a person's decision (approving a guarded action, deciding a package capability, confirming an app intent, trusting a paired peer or issuing a grant), which answers <code>403 PERSON_ONLY</code>.</td></tr>
+    <tr><td><code>clarkcant mcp</code></td><td>stdio MCP server bridged to the node's <code>/mcp</code> (see <a href="mcp.html#connect">MCP</a>).</td></tr>
+    <tr><td><code>clarkcant discover</code></td><td>Prints <code>/.well-known/clarkcant.json</code>.</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="examples">Examples</h2>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>clarkcant status
+clarkcant discover
+
+clarkcant ask "how do I connect Cursor to you?"      # new conversation; its id is printed on stderr
+clarkcant ask "and Claude Desktop?" -c &lt;conversationId&gt;
+
+clarkcant conversations
+clarkcant new "Release notes"
+clarkcant read &lt;conversationId&gt;
+
+clarkcant api GET /node
+clarkcant api POST /conversations '{ "title": "From the CLI" }'
+
+clarkcant stop</code></pre>
+</div>
+<p>Because the reply goes to stdout and the new conversation id goes to stderr, <code>ask</code> composes with pipes and files like any other command.</p>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <a class="brand" href="../"><span class="orb-mark" aria-hidden="true"></span><span class="brand__name">Clark<span>Cant</span></span></a>
+      <nav aria-label="Footer">
+        <a href="../">Home</a>
+        <a href="https://github.com/digitopvn/clarkcant" rel="noopener">GitHub</a>
+        <a href="https://github.com/digitopvn/clarkcant/blob/main/docs/conformance-traceability.md" rel="noopener">Status ledger</a>
+        <a href="https://github.com/digitopvn/clarkcant/blob/main/LICENSE" rel="noopener">Apache-2.0</a>
+      </nav>
+      <p class="site-footer__note">Built on open standards, so any app or AI tool can talk to the same Clark.</p>
+    </div>
+  </footer>
+</body>
+</html>

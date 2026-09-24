@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node scripts/serve.mjs",
     "og": "\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless=new --hide-scrollbars --use-angle=swiftshader --enable-unsafe-swiftshader --window-size=1200,630 --virtual-time-budget=4000 --screenshot=assets/img/og-image.png http://127.0.0.1:4321/scripts/og-card.html",
-    "build": "rm -rf dist && mkdir dist && cp -R index.html 404.html assets dist/ && find dist -name .DS_Store -delete",
+    "build": "rm -rf dist && mkdir dist && cp -R index.html 404.html assets docs vi dist/ && find dist -name .DS_Store -delete",
     "deploy": "npm run build && CLOUDFLARE_ACCOUNT_ID=009dc0fcd0da3e503fbf38eb2b586e4b wrangler pages deploy dist --project-name clarkcant --branch main --commit-dirty=true"
   }
 }
