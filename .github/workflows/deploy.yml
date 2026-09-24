@@ -1,0 +1,39 @@
+# Publishes the site to Cloudflare Pages (project: clarkcant) on every push to main.
+# Needs the repository secret CLOUDFLARE_API_TOKEN, a token with the "Cloudflare Pages: Edit" permission.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+# A newer push supersedes a deploy still running; the last commit on main is what goes live.
+concurrency:
+  group: deploy-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Assemble the published files
+        run: npm run build
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 009dc0fcd0da3e503fbf38eb2b586e4b
+          command: pages deploy dist --project-name clarkcant --branch main --commit-hash ${{ github.sha }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
