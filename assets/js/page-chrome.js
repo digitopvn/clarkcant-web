@@ -52,15 +52,17 @@ export function initReveal() {
 
 export function initCopyButtons() {
   document.querySelectorAll("[data-copy]").forEach((button) => {
+    // Labels come from the button so a translated page keeps its own language.
+    const idle = button.textContent;
     button.addEventListener("click", async () => {
       const code = button.closest("[data-code]").querySelector("code").textContent;
       try {
         await navigator.clipboard.writeText(code);
-        button.textContent = "Copied";
+        button.textContent = button.dataset.copiedLabel || "Copied";
       } catch {
-        button.textContent = "Select and copy";
+        button.textContent = button.dataset.failedLabel || "Select and copy";
       }
-      setTimeout(() => { button.textContent = "Copy"; }, 1600);
+      setTimeout(() => { button.textContent = idle; }, 1600);
     });
   });
 }

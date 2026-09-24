@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="vi" data-theme="system">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>WebSocket · Tài liệu ClarkCant</title>
+  <meta name="description" content="Giao thức frame clarkcant.ws.v1: xác thực bằng frame đầu tiên, gửi bất kỳ lệnh REST nào, nhận sự kiện stream.">
+  <meta name="theme-color" content="#F6F5F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0C0D11" media="(prefers-color-scheme: dark)">
+  <link rel="canonical" href="https://clarkcant.cc/vi/docs/websocket">
+  <link rel="alternate" hreflang="en" href="https://clarkcant.cc/docs/websocket">
+  <link rel="alternate" hreflang="vi" href="https://clarkcant.cc/vi/docs/websocket">
+  <link rel="alternate" hreflang="x-default" href="https://clarkcant.cc/docs/websocket">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="WebSocket · Tài liệu ClarkCant">
+  <meta property="og:description" content="Giao thức frame clarkcant.ws.v1: xác thực bằng frame đầu tiên, gửi bất kỳ lệnh REST nào, nhận sự kiện stream.">
+  <meta property="og:image" content="https://clarkcant.cc/assets/img/og-image.png">
+  <meta property="og:locale" content="vi_VN">
+  <link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..600&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+  <script>
+    // Applied before first paint so a stored theme never flashes the other one.
+    try { const t = localStorage.getItem("cc-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
+  </script>
+  <link rel="stylesheet" href="../../assets/css/tokens.css">
+  <link rel="stylesheet" href="../../assets/css/base.css">
+  <link rel="stylesheet" href="../../assets/css/sections.css">
+  <link rel="stylesheet" href="../../assets/css/docs.css">
+  <script type="module" src="../../assets/js/docs.js"></script>
+</head>
+<body class="docs">
+  <a class="skip-link" href="#main">Bỏ qua, tới nội dung</a>
+
+  <header class="site-header">
+    <div class="site-header__inner">
+      <a class="brand" href="../../" aria-label="ClarkCant, trang chủ">
+        <span class="orb-mark" aria-hidden="true"></span>
+        <span class="brand__name">Clark<span>Cant</span></span>
+      </a>
+      <span class="docs-tag">Tài liệu</span>
+      <div class="site-header__actions">
+        <a class="lang-switch" href="../../docs/websocket.html" hreflang="en" lang="en" aria-label="Read in English" title="English">EN</a>
+        <button class="icon-button" type="button" data-theme-toggle aria-label="Theme: system">
+          <svg class="i-system" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></svg>
+          <svg class="i-light" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></svg>
+          <svg class="i-dark" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+        </button>
+        <a class="button button--quiet button--small" href="https://github.com/digitopvn/clarkcant" rel="noopener" aria-label="GitHub">
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="gh"><path fill="currentColor" stroke="none" d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.4-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.5 9.5 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="docs-layout">
+    <nav class="docs-menu" aria-label="Các trang tài liệu">
+      <p class="eyebrow docs-menu__title">Tài liệu cho nhà phát triển</p>
+      <ul>
+          <li><a href="./">Tổng quan</a></li>
+          <li><a href="api.html">REST &amp; SSE</a></li>
+          <li><a href="mcp.html">MCP</a></li>
+          <li><a href="websocket.html" aria-current="page">WebSocket</a></li>
+          <li><a href="cli.html">CLI</a></li>
+      </ul>
+    </nav>
+
+    <main id="main" class="prose">
+<p class="eyebrow">WebSocket</p>
+<h1>WebSocket</h1>
+<p class="lede">Một socket, mọi lệnh REST dưới dạng frame, kể cả sự kiện stream. Hợp với trình duyệt và client kết nối lâu dài.</p>
+
+<h2 id="auth">Kết nối và xác thực</h2>
+<p>Endpoint: <code>ws://127.0.0.1:8765/ws</code>. Trình duyệt không đặt được header cho WebSocket, nên frame đầu tiên dùng để xác thực:</p>
+<ul>
+  <li>Gửi <code>{ "type": "auth", "token": "&lt;token&gt;" }</code>; node trả lời <code>{ "type": "ready", "protocol": "clarkcant.ws.v1" }</code>.</li>
+  <li>Không xác thực trong 10 giây, hoặc sai token: một frame <code>error</code>, rồi đóng với mã <code>4401</code>.</li>
+</ul>
+
+<h2 id="frames">Các frame</h2>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>→ { "type": "auth", "token": "&lt;token&gt;" }
+← { "type": "ready", "protocol": "clarkcant.ws.v1" }
+
+→ { "type": "request", "id": "1", "method": "POST", "path": "/conversations/&lt;conversationId&gt;/messages/stream", "body": { "text": "hi" } }
+← { "type": "event", "id": "1", "event": "delta", "data": { "text": "…" } }
+← …
+← { "type": "response", "id": "1", "status": 200, "body": null }
+
+→ { "type": "ping" }
+← { "type": "pong" }</code></pre>
+</div>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Frame</th><th>Chiều</th><th>Cấu trúc</th></tr></thead>
+  <tbody>
+    <tr><td><code>auth</code></td><td>client → node</td><td><code>{ type, token }</code>, chỉ ở frame đầu</td></tr>
+    <tr><td><code>ready</code></td><td>node → client</td><td><code>{ type, protocol: "clarkcant.ws.v1" }</code></td></tr>
+    <tr><td><code>request</code></td><td>client → node</td><td><code>{ type, id, method, path, body }</code>: bất kỳ route REST nào</td></tr>
+    <tr><td><code>event</code></td><td>node → client</td><td><code>{ type, id, event, data }</code>: mỗi sự kiện SSE một frame, trên các route stream</td></tr>
+    <tr><td><code>response</code></td><td>node → client</td><td><code>{ type, id, status, body }</code>: luôn là frame cuối của <code>id</code> đó; <code>body</code> là <code>null</code> sau một stream</td></tr>
+    <tr><td><code>ping</code> / <code>pong</code></td><td>cả hai</td><td><code>{ "type": "ping" }</code> → <code>{ "type": "pong" }</code></td></tr>
+  </tbody>
+</table></div>
+<ul>
+  <li>Các request có thể chạy song song; mỗi request một <code>id</code> riêng.</li>
+  <li>Tên sự kiện giống hệt <a href="api.html#stream">luồng SSE</a>: <code>delta</code>, <code>reasoning</code>, <code>tool-start</code>, <code>tool-end</code>, <code>host-control</code>, <code>error</code>, <code>done</code>.</li>
+  <li>Route nhị phân (file đính kèm, ảnh) trả <code>415 USE_HTTP</code>: dùng HTTP cho dữ liệu nhị phân.</li>
+</ul>
+
+<h2 id="example">Ví dụ</h2>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>const ws = new WebSocket("ws://127.0.0.1:8765/ws");
+
+// Browsers cannot set headers on a WebSocket, so the first frame authenticates.
+ws.onopen = () =&gt; ws.send(JSON.stringify({ type: "auth", token: "&lt;token&gt;" }));
+
+ws.onmessage = (message) =&gt; {
+  const frame = JSON.parse(message.data);
+  if (frame.type === "ready") {
+    ws.send(JSON.stringify({
+      type: "request",
+      id: "1",
+      method: "POST",
+      path: "/conversations/&lt;conversationId&gt;/messages/stream",
+      body: { text: "hi" },
+    }));
+  }
+  if (frame.type === "event" &amp;&amp; frame.event === "delta") console.log(frame.data.text);
+  if (frame.type === "response") console.log("finished", frame.id, frame.status);
+};
+
+ws.onclose = (event) =&gt; { if (event.code === 4401) console.log("token missing, wrong or too late"); };</code></pre>
+</div>
+<p class="note"><strong>Đừng nhúng token vào trang công khai.</strong> Ai giữ token là điều khiển được Clark của bạn. Chỉ dùng từ máy của bạn hoặc sau lớp đăng nhập của riêng bạn.</p>
+
+<h2 id="other">Các socket khác</h2>
+<p>Node còn phục vụ <code>/voice</code> (phiên giọng nói) và <code>/terminal</code> (thẻ terminal). Chúng thuộc về ứng dụng ClarkCant và không nằm trong giao thức frame này.</p>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="site-footer__inner">
+      <a class="brand" href="../../"><span class="orb-mark" aria-hidden="true"></span><span class="brand__name">Clark<span>Cant</span></span></a>
+      <nav aria-label="Footer">
+        <a href="../../">Trang chủ</a>
+        <a href="https://github.com/digitopvn/clarkcant" rel="noopener">GitHub</a>
+        <a href="https://github.com/digitopvn/clarkcant/blob/main/docs/conformance-traceability.md" rel="noopener">Bảng trạng thái</a>
+        <a href="https://github.com/digitopvn/clarkcant/blob/main/LICENSE" rel="noopener">Apache-2.0</a>
+      </nav>
+      <p class="site-footer__note">Xây trên chuẩn mở, để mọi ứng dụng hay công cụ AI đều nói chuyện được với cùng một Clark.</p>
+    </div>
+  </footer>
+</body>
+</html>

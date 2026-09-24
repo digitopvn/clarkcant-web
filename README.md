@@ -12,19 +12,21 @@ npm run og         # re-render assets/img/og-image.png from scripts/og-card.html
 
 Every push to `main` deploys automatically through `.github/workflows/deploy.yml` (needs the repository secret `CLOUDFLARE_API_TOKEN` with "Cloudflare Pages: Edit"); `npm run deploy` stays available for a manual publish.
 
-Live at https://clarkcant.cc (also https://clarkcant.pages.dev). Only `index.html`, `404.html` and `assets/` are published. `404.html` uses root-absolute paths, so serve the site from a domain root; if the domain changes, update `og:image` in `index.html`.
+Live at https://clarkcant.cc (also https://clarkcant.pages.dev). Only `index.html`, `404.html`, `assets/`, `docs/` and `vi/` are published (see the `build` script). `404.html` uses root-absolute paths, so serve the site from a domain root; if the domain changes, update `og:image` in `index.html`.
 
 ## Layout
 
 | Path | What it owns |
 |---|---|
 | `index.html` | All page content and section order |
+| `docs/` | Developer docs in English (default): overview, REST & SSE, MCP, WebSocket, CLI |
+| `vi/docs/` | The same pages in Vietnamese, one file per English page |
 | `assets/css/tokens.css` | Type scale, spacing, motion, light/dark palettes |
-| `assets/css/*.css` | One file per concern: base, orb, conversation, widgets, hero, story, sections |
+| `assets/css/*.css` | One file per concern: base, orb, conversation, widgets, hero, story, sections, docs |
 | `assets/js/orb/` | The Orb: shader ported from the product's `orb-shader.ts`, renderer, mount/scheduling |
 | `assets/js/widgets/` | The four live in-reply widgets (timer, bill split, comparison, file results) |
 | `assets/js/scripted-replies.js` | Every scripted reply the hero composer and gallery can show |
-| `assets/js/*.js` | One module per section behaviour; `main.js` wires them up |
+| `assets/js/*.js` | One module per section behaviour; `main.js` wires them up (`docs.js` for the docs pages) |
 
 ## Rules this site keeps
 
@@ -33,5 +35,6 @@ Live at https://clarkcant.cc (also https://clarkcant.pages.dev). Only `index.htm
 - **Theme:** system by default; the header toggle cycles system → light → dark (stored in `localStorage` as `cc-theme`).
 - **Motion:** `prefers-reduced-motion` stops loops and draws still Orb frames.
 - **Microphone:** the voice demo reads loudness only, in the browser, and stops when the section leaves view.
+- **Docs are bilingual.** English is the default at `docs/`; every page has a Vietnamese twin at `vi/docs/` with the same file name, full diacritics, a language switch and `hreflang` alternates. Change both in the same commit. Code samples are identical in both languages and must match the product's interface contract exactly: routes, fields, frames, flags and environment variables. Use `<token>` placeholders, never real-looking secrets, and never document an interface the product does not ship.
 
-When the product ships something new, update the status card in `index.html` (`#open-source`) and, if relevant, `scripted-replies.js`.
+When the product ships something new, update the status card in `index.html` (`#open-source`), the docs under `docs/` and `vi/docs/` when an open interface changed, and, if relevant, `scripted-replies.js`.
