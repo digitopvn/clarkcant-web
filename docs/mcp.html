@@ -113,6 +113,7 @@
     <tr><td><code>create_conversation</code></td><td><code>{ title? }</code></td><td>Creates a conversation.</td></tr>
     <tr><td><code>read_conversation</code></td><td><code>{ conversationId, after? }</code></td><td>The timeline as text plus structured content.</td></tr>
     <tr><td><code>answer_question</code></td><td><code>{ conversationId, questionId, text?, optionIds?, confirmed? }</code></td><td>Answers a question Clark asked; <code>confirmed</code> answers a yes/no question.</td></tr>
+    <tr><td><code>stop_reply</code></td><td><code>{ conversationId }</code></td><td>Same as <code>POST /conversations/{id}/stop</code>: stops only that conversation's reply and keeps what it wrote.</td></tr>
     <tr><td><code>stop_all_work</code></td><td><code>{}</code></td><td>Same as <code>POST /stop</code>.</td></tr>
     <tr><td><code>node_status</code></td><td><code>{}</code></td><td>Same as <code>GET /node</code>.</td></tr>
   </tbody>
