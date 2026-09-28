@@ -107,6 +107,7 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
     <tr><td>GET</td><td><code>/conversations/{id}/timeline?after=N</code></td><td>–</td><td>Tin nhắn (các block: text/markdown, hoạt động của tool, suy luận, widget…), mục đã ghim, các instance widget.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/questions/{questionId}/answer</code></td><td><code>{ text?, optionIds?, confirmed? }</code></td><td>Trả lời một <code>ask_user_question</code>; bắt đầu một lượt mới.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/questions/{questionId}/cancel</code></td><td>–</td><td>Huỷ câu hỏi.</td></tr>
+    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/export</code></td><td><code>{ sort?, query?, filters?, columns? }</code></td><td>Tải một widget bảng xuống thành file CSV (<code>text/csv</code>, tên file nằm trong <code>Content-Disposition</code>). Các dòng lấy từ chính dataset của bảng, áp dụng cách sắp xếp, từ khoá tìm, bộ lọc và các cột bạn gửi; request không thể mang dòng dữ liệu. Ô nào mà bảng tính sẽ chạy như công thức đều được thêm tiền tố <code>'</code>. Chỉ chủ của bảng mới xuất được, và relay WebSocket, MCP cùng <code>clarkcant api</code> từ chối nó với <code>403 PERSON_ONLY</code>.</td></tr>
     <tr><td>POST</td><td><code>/stop</code></td><td>–</td><td>Dừng khẩn cấp: huỷ các lệnh đang chạy, ngắt lượt trả lời, dừng việc chạy nền.</td></tr>
   </tbody>
 </table></div>
