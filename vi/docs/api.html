@@ -147,7 +147,7 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
     <tr><td><code>delta</code></td><td>Thêm một đoạn trả lời: <code>{ text }</code>.</td></tr>
     <tr><td><code>reasoning</code></td><td>Phần suy luận của model, tách khỏi những gì nó nói với người dùng.</td></tr>
     <tr><td><code>tool-start</code>, <code>tool-end</code></td><td>Một lần gọi tool bắt đầu hoặc kết thúc.</td></tr>
-    <tr><td><code>host-control</code></td><td>Sự kiện điều khiển dành cho ứng dụng host.</td></tr>
+    <tr><td><code>host-control</code></td><td>Agent yêu cầu ứng dụng thay đổi một thứ gì đó: mở Settings ở một tab, đổi model, mở hoặc kết thúc chế độ giọng nói, quay lại cuộc trò chuyện. Xem <a href="#host-control">bên dưới</a>.</td></tr>
     <tr><td><code>error</code></td><td>Lượt trả lời gặp lỗi.</td></tr>
     <tr><td><code>done</code></td><td>Sự kiện cuối: <code>{ resolution, taskId, messageIds, timeline }</code>.</td></tr>
   </tbody>
@@ -168,6 +168,10 @@ for (;;) {
   console.log(value); // raw Server-Sent Events: delta, tool-start, …, done
 }</code></pre>
 </div>
+
+<h3 id="host-control">Khi agent thay đổi ứng dụng</h3>
+<p>Sự kiện <code>host-control</code> do agent yêu cầu mang một <code>controlId</code>. Ứng dụng thực hiện hành động, rồi trả lời bằng <code>POST /app-intents/host-control/&lt;controlId&gt;</code> <code>{ "ran": true|false, "say": "…" }</code>. Agent nhận đúng câu trả lời đó, nên Clark chỉ nói ứng dụng đã thay đổi khi ứng dụng báo là đã làm, và chuyển lại lý do của ứng dụng khi không làm được. Nếu không có câu trả lời trong vài giây, agent được báo là hành động chưa được xác nhận. Mỗi <code>controlId</code> chỉ được trả lời một lần, và route chờ câu trả lời (<code>/messages</code>) không bao giờ chờ nó. Việc trả lời thuộc bề mặt của con người: relay WebSocket, MCP và <code>clarkcant api</code> từ chối nó với <code>403 PERSON_ONLY</code>.</p>
+<p>Trong bản ghi audit, một hành động agent yêu cầu khi đang trả lời điều bạn nói được đánh dấu <code>voice-agent</code>, tách biệt với lệnh do chính bạn nói (<code>voice</code>).</p>
 
 <h2 id="timeline">Đọc một cuộc trò chuyện</h2>
 <div class="code" data-code>
