@@ -238,6 +238,25 @@ for (;;) {
 <p><code>source</code> (<code>click</code>, <code>chat</code> hoặc <code>voice</code>) là nhãn tuỳ chọn cho biết câu trả lời được đưa ra ở đâu; nhãn được lưu đúng như gửi và không chứng minh điều gì. Một hành động thuộc tác vụ của người khác, của node khác, hoặc không tồn tại trả về <code>404 RESOURCE_NOT_FOUND</code>; một hành động không còn ở trạng thái chưa rõ trả về <code>409 EFFECT_NOT_UNKNOWN</code>. Route này ghi lại quyết định của một người, nên relay WebSocket, MCP và <code>clarkcant api</code> từ chối nó với <code>403 PERSON_ONLY</code>: một AI client tự nói được rằng lần push của nó đã thành công thì cũng tự báo được thành công của chính nó.</p>
 <p class="note">Các hành động trên trình duyệt như gửi một biểu mẫu cũng được ghi vào cùng sổ này, nhưng hiện chưa có gì điều khiển trình duyệt cho một tác vụ trong bản chạy thật, nên hôm nay chỉ các lệnh dẫn tới đây.</p>
 
+<h2 id="themes">Chọn chủ đề</h2>
+<p>Chủ đề quy định màu sắc và độ bo góc của Clark. Nó tách biệt với chế độ màu (sáng, tối hoặc theo hệ thống), vốn vẫn áp dụng bên trong mọi chủ đề. Clark Default có sẵn, và các chủ đề khác đến từ những gói đã cài có khai báo facet <code>themes</code>. Chủ đề chỉ là dữ liệu: nó không chạy được mã, không thêm được style toàn cục, không với ra ngoài gói của nó và không tải được gì. Mọi chủ đề đều phải qua cùng phép kiểm tra độ tương phản như Clark Default, và chủ đề có màu quá sát nhau để đọc sẽ không được đưa ra để chọn. Các route này dùng cùng token nhưng chưa có trong <code>/openapi.json</code> và có thể thay đổi.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Method</th><th>Đường dẫn</th><th>Body</th><th>Ghi chú</th></tr></thead>
+  <tbody>
+    <tr><td>GET</td><td><code>/themes</code></td><td>–</td><td><code>{ themes, problems, unchecked }</code>. Clark Default đứng đầu, sau đó là từng chủ đề của gói kèm <code>themeRef</code> (<code>package:&lt;package id&gt;#&lt;theme id&gt;</code>) và nơi cung cấp: package id, phiên bản, digest, làn tin cậy và nguồn. <code>problems</code> nêu từng chủ đề không thể đưa ra và lý do; chủ đề trượt kiểm tra độ tương phản có kèm danh sách <code>contrast</code> các cặp màu không đạt. <code>unchecked</code> nêu từng gói mà node này không đọc được tệp.</td></tr>
+    <tr><td>GET</td><td><code>/appearance</code></td><td>–</td><td><code>{ selectedRef, appliedRef, theme, provider, fallback }</code>: điều bạn đã chọn và điều đang được vẽ. Khi lựa chọn không vẽ được, Clark Default được vẽ thay, lựa chọn của bạn vẫn được giữ, và <code>fallback</code> cho biết lý do bằng <code>THEME_NOT_INSTALLED</code>, <code>THEME_INVALID</code>, <code>THEME_LOW_CONTRAST</code>, <code>THEME_UNAVAILABLE</code> hoặc <code>THEME_UNKNOWN</code>. Cài lại gói, hoặc lùi bản cập nhật đã làm hỏng nó, sẽ đưa chủ đề trở lại mà không cần chọn lại.</td></tr>
+    <tr><td>PUT</td><td><code>/preferences/experience.themeRef</code></td><td><code>{ value }</code></td><td>Chọn một chủ đề: <code>builtin:clark</code>, hoặc một <code>themeRef</code> từ <code>/themes</code>. Tham chiếu mà node này không vẽ được sẽ bị từ chối với <code>409</code> cùng mã và lý do tương ứng, và không có gì được lưu. Giá trị hoàn toàn không phải là tham chiếu trả về <code>400 PREFERENCE_INVALID</code>.</td></tr>
+  </tbody>
+</table></div>
+<p>Các trường <code>message</code> bằng tiếng Anh, dành cho log. Hãy hiển thị lỗi từ <code>code</code> và <code>contrast</code> bằng ngôn ngữ của người đọc, như ứng dụng vẫn làm. Không có gì được đẩy xuống khi một gói thay đổi, nên client đọc lại <code>/appearance</code> sau khi nó thay đổi một gói và khi cửa sổ của nó được mở lại. Trang đổi giao diện tại chỗ, không tải lại, và giữ nguyên cuộc trò chuyện, tin nhắn đang soạn và các khung đã ghim.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>curl -s -X PUT "$CLARKCANT_URL/preferences/experience.themeRef" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "value": "package:com.example.theme-dusk#dusk" }'</code></pre>
+</div>
+
 <h2 id="stop">Dừng mọi thứ</h2>
 <div class="code" data-code>
 <button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>

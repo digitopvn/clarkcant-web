@@ -238,6 +238,25 @@ for (;;) {
 <p><code>source</code> (<code>click</code>, <code>chat</code> or <code>voice</code>) is an optional label for where the answer was given; it is stored as sent and proves nothing. An effect of another person's task, of another node, or one that does not exist answers <code>404 RESOURCE_NOT_FOUND</code>; one that is no longer unknown answers <code>409 EFFECT_NOT_UNKNOWN</code>. This records a person's decision, so the WebSocket relay, MCP and <code>clarkcant api</code> refuse it with <code>403 PERSON_ONLY</code>: an AI client that could say its own push landed could report its own success.</p>
 <p class="note">Browser actions such as a form submit are written to the same ledger, but nothing drives the browser for a task in production yet, so today only commands lead here.</p>
 
+<h2 id="themes">Choose a theme</h2>
+<p>A theme sets Clark's colours and corner radii. It is separate from the colour scheme (light, dark or follow the system), which still applies inside every theme. Clark Default is built in, and more themes come from installed packages that declare a <code>themes</code> facet. A theme is only data: it can't run code, add global styles, reach outside its package or fetch anything. Every theme is held to the same contrast check as Clark Default, and one whose colours are too close to read isn't offered. These routes take the same token but are not in <code>/openapi.json</code> yet and may change.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>GET</td><td><code>/themes</code></td><td>–</td><td><code>{ themes, problems, unchecked }</code>. Clark Default comes first, then each package theme with its <code>themeRef</code> (<code>package:&lt;package id&gt;#&lt;theme id&gt;</code>) and its provider: package id, version, digest, trust lane and source. <code>problems</code> names each theme that can't be offered and why; one that failed the contrast check carries a <code>contrast</code> list of the failing pairs. <code>unchecked</code> names each package whose files this node couldn't read.</td></tr>
+    <tr><td>GET</td><td><code>/appearance</code></td><td>–</td><td><code>{ selectedRef, appliedRef, theme, provider, fallback }</code>: what you chose and what is drawn. When the choice can't be drawn, Clark Default is drawn instead, your choice is kept, and <code>fallback</code> says why with <code>THEME_NOT_INSTALLED</code>, <code>THEME_INVALID</code>, <code>THEME_LOW_CONTRAST</code>, <code>THEME_UNAVAILABLE</code> or <code>THEME_UNKNOWN</code>. Reinstalling the package, or rolling back an update that broke it, brings the theme back without choosing it again.</td></tr>
+    <tr><td>PUT</td><td><code>/preferences/experience.themeRef</code></td><td><code>{ value }</code></td><td>Chooses a theme: <code>builtin:clark</code>, or a <code>themeRef</code> from <code>/themes</code>. A reference this node can't draw is refused with <code>409</code> and the same code and reason, and nothing is stored. A value that isn't a reference at all answers <code>400 PREFERENCE_INVALID</code>.</td></tr>
+  </tbody>
+</table></div>
+<p><code>message</code> fields are English, for logs. Show a failure from its <code>code</code> and <code>contrast</code> in your reader's language, as the app does. Nothing is pushed when a package changes, so a client re-reads <code>/appearance</code> after it changes a package and when its window comes back into view. The page restyles in place, without a reload, and keeps the conversation, the message being written and pinned views as they were.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>curl -s -X PUT "$CLARKCANT_URL/preferences/experience.themeRef" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "value": "package:com.example.theme-dusk#dusk" }'</code></pre>
+</div>
+
 <h2 id="stop">Stop everything</h2>
 <div class="code" data-code>
 <button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
