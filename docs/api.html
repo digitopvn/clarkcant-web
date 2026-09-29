@@ -207,6 +207,19 @@ for (;;) {
   -d '{ "optionIds": ["&lt;optionId&gt;"] }'</code></pre>
 </div>
 
+<h2 id="unknown-effects">Say whether an action took effect</h2>
+<p>When a command that reaches outside your machine, such as a push, runs out of time or is stopped before it reports, nobody knows whether it went through. The task waits as uncertain, does not try that action again on its own, and your inbox gets one notice about it with two buttons: “It took effect” and “It did not take effect”. The answer is recorded with who gave it and when, cannot be changed afterwards, and settles the task: it succeeded only when the action took effect and the run had checked its result.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>curl -s -X POST "$CLARKCANT_URL/effects/&lt;effectId&gt;/reconcile" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "outcome": "confirmed" }'
+# outcome: "confirmed" (it took effect) or "failed" (it did not)</code></pre>
+</div>
+<p><code>source</code> (<code>click</code>, <code>chat</code> or <code>voice</code>) is an optional label for where the answer was given; it is stored as sent and proves nothing. An effect of another person's task, of another node, or one that does not exist answers <code>404 RESOURCE_NOT_FOUND</code>; one that is no longer unknown answers <code>409 EFFECT_NOT_UNKNOWN</code>. This records a person's decision, so the WebSocket relay, MCP and <code>clarkcant api</code> refuse it with <code>403 PERSON_ONLY</code>: an AI client that could say its own push landed could report its own success.</p>
+<p class="note">Browser actions such as a form submit are written to the same ledger, but nothing drives the browser for a task in production yet, so today only commands lead here.</p>
+
 <h2 id="stop">Stop everything</h2>
 <div class="code" data-code>
 <button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
