@@ -214,6 +214,86 @@ for (;;) {
   -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
 </div>
 
+<h2 id="paired-nodes">Các node đã ghép cặp</h2>
+<p>Hai node ClarkCant có thể được ghép cặp với nhau, ví dụ laptop của bạn và một máy chủ. Một node đã ghép cặp có thể báo cho node kia biết chuyện gì đã xảy ra, đặt một thông báo vào hộp thư của chủ node kia, và giao cho nó một việc, mỗi thứ chỉ trong phạm vi mà chủ của node nhận cho phép.</p>
+<p class="note">Các route này dùng cùng token nhưng chưa có trong <code>/openapi.json</code> và có thể thay đổi. Xác nhận một peer và viết một grant là quyết định của chủ node: relay WebSocket, MCP và <code>clarkcant api</code> từ chối chúng với <code>403 PERSON_ONLY</code>. Hiện nay các node nói chuyện với gateway của nhau bằng HTTP thuần, nên một node phải truy cập được qua HTTP mới ghép cặp được, và con người kiểm khoá của node kia bằng cách so fingerprint.</p>
+
+<h3 id="pairing">Ghép cặp hai node</h3>
+<p>Một node mời, node kia nhận lời mời, rồi một người xác nhận trên <strong>cả hai</strong> node. Khi cả hai chưa cùng xác nhận, peer vẫn đang chờ: không có gì được gửi tới nó và tin nhắn của nó bị từ chối.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Ghi chú</th></tr></thead>
+  <tbody>
+    <tr><td>POST</td><td><code>/peers/invites</code></td><td><code>{ endpoint }</code></td><td>Trên node mời, kèm địa chỉ mà node kia sẽ dùng để gọi tới. <code>201 { invite }</code> gồm <code>inviteId</code>, <code>issuerNodeId</code>, <code>endpoint</code>, <code>fingerprint</code> và <code>expiresAt</code>. Chỉ dùng một lần, có hiệu lực 10 phút.</td></tr>
+    <tr><td>POST</td><td><code>/peers/claim</code></td><td><code>{ inviteId, node }</code></td><td>Node nhận lời mời gọi route này trên node mời, không cần token của node đó. <code>node</code> là <code>{ nodeId, label, endpoint, publicKey, fingerprint, tokenHash }</code> của node nhận lời mời. <code>200 { issuer, tokenHash }</code>, và node nhận lời mời được ghi lại ở trạng thái chờ. <code>404 INVITE_UNKNOWN</code>; <code>409 INVITE_EXPIRED</code> hoặc <code>INVITE_ALREADY_CLAIMED</code>; <code>400 FINGERPRINT_MISMATCH</code> khi fingerprint không khớp với khoá được đưa ra.</td></tr>
+    <tr><td>POST</td><td><code>/peers/record</code></td><td><code>{ node }</code></td><td>Trên node nhận lời mời: <code>issuer</code> trong câu trả lời của lượt nhận lời mời, kèm endpoint bạn đã dùng để gọi tới nó và <code>tokenHash</code> trong câu trả lời. <code>201 { nodeId, trustedAt }</code>, vẫn đang chờ (<code>trustedAt</code> là <code>null</code>).</td></tr>
+    <tr><td>GET</td><td><code>/peers</code></td><td>–</td><td><code>nodeId</code>, <code>endpoint</code>, <code>fingerprint</code>, <code>pairedAt</code>, <code>trustedAt</code> và <code>revokedAt</code> của từng peer.</td></tr>
+    <tr><td>POST</td><td><code>/peers/{nodeId}/confirm</code></td><td>–</td><td>Quyết định của một người, sau khi so fingerprint: lời mời mang fingerprint của node mời, còn <code>GET /node</code> cho thấy fingerprint của chính từng máy. <code>200 { nodeId, trusted: true }</code>; <code>404 PEER_UNKNOWN</code>.</td></tr>
+    <tr><td>POST</td><td><code>/peers/{nodeId}/revoke</code></td><td>–</td><td>Kết thúc việc ghép cặp trên node này: node không nhận thêm tin nhắn nào từ peer đó và không gửi gì cho nó nữa. <code>200 { nodeId, revoked: true }</code>; <code>404 PEER_UNKNOWN</code>.</td></tr>
+  </tbody>
+</table></div>
+<p>Không có token nào đi qua mạng khi ghép cặp. Mỗi node đưa cho peer một token dẫn xuất từ <code>localToken</code> của chính nó (HMAC-SHA256 dạng base64url của <code>peer:&lt;peerNodeId&gt;</code>, với khoá là <code>localToken</code>), còn <code>tokenHash</code> là SHA-256 dạng hex của token đó. Chỉ có hash được lưu lại.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>curl -s -X POST "$CLARKCANT_URL/peers/invites" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "endpoint": "http://laptop.local:8765" }'
+# 201 → { "invite": { "inviteId": "…", "fingerprint": "…", "expiresAt": "…", … } }
+
+# Sau khi node kia đã nhận lời mời và bạn đã so fingerprint:
+curl -s -X POST "$CLARKCANT_URL/peers/&lt;nodeId&gt;/confirm" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
+</div>
+
+<h3 id="grants">Viết một grant</h3>
+<p><code>POST /grants</code> nhận một grant: <code>{ grantId, ownerPrincipalId, senderNodeId, receiverNodeId, capabilityRefs, resources, allowedDataClasses, expiresAt, budget?, maxDelegationDepth, allowedEffectCategories? }</code>. Grant ghi node này là bên gửi, chủ của node này (<code>ownerPrincipalId</code> trong <code>identity.json</code>) là chủ, và một peer đã xác nhận là bên nhận. Grant được lưu và xếp hàng gửi tới peer trong cùng một lần ghi, và từ đó peer nhận những việc node này giao cho nó theo grant đó, cho tới khi grant hết hạn hoặc bị thu hồi. Peer vẫn chỉ chạy những gì chủ của nó cho phép: nó lấy giao của grant với mức cho phép của chính nó, nên một grant có thể thu hẹp những gì chạy ở đó nhưng không bao giờ mở rộng.</p>
+<ul>
+  <li><code>201 { grantId, receiverNodeId, allowedDataClasses }</code>.</li>
+  <li><code>400 INVALID_SCHEMA</code>, hoặc <code>400 GRANT_NOT_OURS</code> khi bên gửi không phải node này; <code>403 NOT_THE_OWNER</code>; <code>404 PEER_UNKNOWN</code> khi bên nhận chưa được ghép cặp và xác nhận.</li>
+</ul>
+<p>Hiếm khi bạn phải tự viết grant. Khi bạn thiết lập trong cuộc trò chuyện một tự động hoá chạy trên node đã ghép cặp, grant được viết cho đúng các thư mục, repository và tác động của nó, và việc tạm dừng hay xoá tự động hoá đó thu hồi grant trên cả hai node.</p>
+
+<h3 id="peer-signals">Báo cho node đã ghép cặp biết chuyện gì đã xảy ra</h3>
+<p><code>POST /peers/{nodeId}/signals</code> <code>{ id, topic, payload?, subject?, occurredAt? }</code>, gửi tới chính node của bạn bằng token của nó. <code>id</code> là tên bạn đặt cho sự kiện. Signal được xếp hàng trước khi gửi, nên không bị mất khi peer đang ngoại tuyến, và peer chỉ ghi nhận nó một lần dù được gửi lại bao nhiêu lần.</p>
+<ul>
+  <li><code>202 { messageId, queued: true }</code>.</li>
+  <li><code>404 PEER_UNKNOWN</code> khi peer chưa được ghép cặp và xác nhận; <code>400</code> cho các trường hợp khác.</li>
+</ul>
+<p>Peer ghi nhận nó thành <code>peer.&lt;topic&gt;</code> từ node mà kênh đã xác thực chỉ ra, nên nó không thể giả làm một lần gửi từ GitHub, một webhook có chữ ký hay một bộ hẹn giờ. Signal là một sự việc, không phải mệnh lệnh: nó không cần grant và không đòi hỏi gì, và chỉ những yêu cầu thường trực mà chủ của peer đã thiết lập ở đó mới quyết định nó khởi động việc gì, nếu có.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>curl -s -X POST "$CLARKCANT_URL/peers/&lt;nodeId&gt;/signals" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "id": "build-812", "topic": "build.finished", "payload": { "status": "failed" } }'
+# 202 → { "messageId": "…", "queued": true }</code></pre>
+</div>
+
+<h3 id="peer-notices">Đặt thông báo vào hộp thư của chủ node kia</h3>
+<p><code>POST /peers/{nodeId}/notices</code> <code>{ id, title, body?, category?, severity? }</code>, gửi tới chính node của bạn bằng token của nó. <code>id</code> là tên bạn đặt cho sự kiện. <code>category</code> là <code>result</code>, <code>update</code>, <code>message</code> (mặc định) hoặc <code>alert</code>; <code>severity</code> là <code>info</code> (mặc định), <code>success</code>, <code>warning</code> hoặc <code>error</code>. Hiện chưa có gì trên node tự gửi thông báo, nên route này là cách một script, CLI, một client MCP hay một tự động hoá báo cho một Clark đã ghép cặp.</p>
+<ul>
+  <li><code>202 { messageId, queued: true }</code>: đã xếp hàng, peer chưa nhận.</li>
+  <li><code>404 PEER_UNKNOWN</code> khi peer chưa được ghép cặp và xác nhận.</li>
+  <li><code>409 NOTICES_UNSUPPORTED</code> khi peer chưa cho biết nó nhận thông báo. Node biết điều đó từ câu trả lời của peer cho bất cứ thứ gì nó gửi tới, nên hãy gửi cho peer đó một thứ trước, ví dụ một signal, rồi thử lại. Nếu peer chạy ClarkCant từ trước khi có thông báo, hãy cập nhật nó ở máy đó.</li>
+  <li><code>400</code> cho mọi trường hợp khác.</li>
+</ul>
+<p>Thông báo chỉ là chữ, không hơn: <code>id</code> tối đa 160 ký tự, tiêu đề tối đa 120 và nội dung tối đa 500, không có hành động, liên kết hay chủ thể. Node hiển thị nó quyết định có thể làm gì với nó, và xem nội dung của nó là dữ liệu. Nó được ghi nhận là của node bạn, mỗi <code>id</code> một lần, nên gửi lại hay phát lại cũng chỉ hiện một lần. Mỗi peer giữ tối đa 20 thông báo đang chờ ở đó, cái cũ nhất bị bỏ trước, mà không đẩy ra thông báo của chính node đó hay của peer khác.</p>
+<p>Node nhận chỉ nhận thông báo theo quyết định của chính chủ nó là làm việc với node của bạn: một grant còn hiệu lực mà chủ đó đã viết cho node của bạn, hoặc việc họ cho phép node của bạn chạy việc ở đó. Grant do node của bạn viết không tính, và chỉ ghép cặp thôi cũng không đủ. Nó cũng chỉ nhận tối đa 30 thông báo mỗi phút từ một peer. Lời từ chối là quyết định cuối cùng, không phải lần gửi thất bại: node của bạn không gửi lại thông báo đó, và báo cho bạn trong hộp thư của chính bạn, mỗi peer và mỗi lý do một lần, thông báo nào không tới, vì sao, và điều gì sẽ thay đổi được việc đó.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>curl -s -X POST "$CLARKCANT_URL/peers/&lt;nodeId&gt;/notices" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "id": "backup-2026-09-30", "title": "Sao lưu đêm qua thất bại", "severity": "error" }'
+# 202 → { "messageId": "…", "queued": true }</code></pre>
+</div>
+
+<h3 id="peer-inbox">Trong hộp thư</h3>
+<ul>
+  <li>Thông báo có thể đến từ một node đã ghép cặp. Chúng được đánh dấu là của node đó, và không mang hành động nào từ nó.</li>
+  <li>Khi việc gửi tới một node đã ghép cặp thất bại liên tục hơn 10 phút, bạn nhận một thông báo cho lần mất kết nối đó, không phải mỗi tin nhắn một thông báo; nếu vấn đề thay đổi, một thông báo mới thay cho thông báo cũ. Thông báo nói rõ vấn đề: thiết bị không trả lời từ một thời điểm nào đó, thiết bị trả lời nhưng từ chối, ClarkCant ở đó không xử lý được tin nhắn, hoặc việc gửi đã dừng. Nó cho biết những gì còn nợ có còn nằm trong hàng đợi và vẫn được thử gửi lại hay không. Thông báo tự biến mất ngay khi node đó xác nhận đã nhận bất cứ thứ gì, hoặc khi bạn thu hồi việc ghép cặp.</li>
+</ul>
+
 <h2 id="openapi">Sinh client</h2>
 <p>Phần ổn định được mô tả bằng OpenAPI 3.1, nên công cụ OpenAPI 3.1 nào cũng sinh được client có kiểu từ đó:</p>
 <div class="code" data-code>
