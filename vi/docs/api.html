@@ -101,13 +101,14 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
     <tr><td>GET</td><td><code>/node</code></td><td>–</td><td>Id node, nhãn, fingerprint và model đã cấu hình (<code>model</code> là <code>null</code> khi chưa đặt).</td></tr>
     <tr><td>GET</td><td><code>/conversations</code></td><td>–</td><td>Danh sách cuộc trò chuyện.</td></tr>
     <tr><td>POST</td><td><code>/conversations</code></td><td><code>{ title? }</code></td><td><code>201 { conversationId, homeNodeId }</code></td></tr>
-    <tr><td>POST</td><td><code>/conversations/{id}/messages</code></td><td><code>{ text, attachmentIds? }</code></td><td>Chờ câu trả lời; trả về <code>{ resolution, taskId, messageIds, timeline }</code>, hoặc <code>202</code> khi việc tiếp tục chạy nền (đọc timeline sau).</td></tr>
-    <tr><td>POST</td><td><code>/conversations/{id}/messages/stream</code></td><td><code>{ text, attachmentIds? }</code></td><td>Stream câu trả lời bằng Server-Sent Events (xem bên dưới).</td></tr>
+    <tr><td>POST</td><td><code>/conversations/{id}/messages</code></td><td><code>{ text, attachmentIds?, references? }</code></td><td>Chờ câu trả lời; trả về <code>{ resolution, taskId, messageIds, timeline }</code>, hoặc <code>202</code> khi việc tiếp tục chạy nền (đọc timeline sau).</td></tr>
+    <tr><td>POST</td><td><code>/conversations/{id}/messages/stream</code></td><td><code>{ text, attachmentIds?, references? }</code></td><td>Stream câu trả lời bằng Server-Sent Events (xem bên dưới).</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/stop</code></td><td><code>{ source? }</code></td><td>Chỉ dừng câu trả lời mà cuộc trò chuyện này đang viết. Phần đã viết được giữ lại, gắn nhãn đã dừng. Trả về <code>{ stopped }</code>, là <code>false</code> khi không có câu trả lời nào đang chạy. Mỗi lần dừng được ghi audit kèm nguồn (<code>chat</code>, <code>voice</code>, hoặc <code>api</code> khi bỏ trống).</td></tr>
     <tr><td>GET</td><td><code>/conversations/{id}/timeline?after=N</code></td><td>–</td><td>Tin nhắn (các block: text/markdown, hoạt động của tool, suy luận, widget…), mục đã ghim, các instance widget.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/questions/{questionId}/answer</code></td><td><code>{ text?, optionIds?, confirmed? }</code></td><td>Trả lời một <code>ask_user_question</code>; bắt đầu một lượt mới.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/questions/{questionId}/cancel</code></td><td>–</td><td>Huỷ câu hỏi.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/export</code></td><td><code>{ sort?, query?, filters?, columns? }</code></td><td>Tải một widget bảng xuống thành file CSV (<code>text/csv</code>, tên file nằm trong <code>Content-Disposition</code>). Các dòng lấy từ chính dataset của bảng: cách sắp xếp, từ khoá tìm và bộ lọc bạn gửi chọn dòng dựa trên mọi cột mà bảng hiển thị, giống hệt trên màn hình, còn <code>columns</code> chỉ quyết định file chứa những cột nào trong số đó. Request không thể mang dòng dữ liệu. Ô nào mà bảng tính sẽ chạy như công thức đều được thêm tiền tố <code>'</code>. Chỉ chủ của bảng mới xuất được, và relay WebSocket, MCP cùng <code>clarkcant api</code> từ chối nó với <code>403 PERSON_ONLY</code>.</td></tr>
+    <tr><td>GET</td><td><code>/composer/suggestions?trigger=/|@&amp;q=&amp;conversationId=</code></td><td>–</td><td>Những gì nên gợi ý sau <code>/</code> (kỹ năng) hoặc <code>@</code> (dự án, tệp, thư mục, dịch vụ, cuộc trò chuyện, việc nền). Tối đa 8 dòng; mỗi dòng mang <code>ref</code> để gửi đi, hoặc <code>disabledReason</code>. Xem <a href="#references">bên dưới</a>.</td></tr>
     <tr><td>POST</td><td><code>/stop</code></td><td>–</td><td>Dừng khẩn cấp: huỷ các lệnh đang chạy, ngắt lượt trả lời, dừng việc chạy nền.</td></tr>
   </tbody>
 </table></div>
@@ -133,6 +134,21 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
 </div>
 <p>Một câu gõ như “open settings” được host hiểu là ý định với ứng dụng (<code>appIntent</code> trong response) thay vì gửi tới model.</p>
 <p class="note">Việc phê duyệt do con người quyết định trên giao diện của chính họ. Route đó nằm ngoài mô tả ổn định và cố ý không có tool MCP.</p>
+
+<h2 id="references">Chỉ tới một kỹ năng, một dự án hay một tệp</h2>
+<p>Ngoài phần chữ, một tin nhắn có thể mang tối đa 8 tham chiếu có kiểu: một kỹ năng, một dự án, một tệp hay thư mục trong dự án đã được lập chỉ mục, một dịch vụ MCP, một cuộc trò chuyện khác hoặc một việc nền. Hãy lấy chúng từ <code>GET /composer/suggestions</code> thay vì tự dựng, rồi gửi <code>ref</code> của từng dòng bạn chọn.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>curl -s "$CLARKCANT_URL/composer/suggestions?trigger=@&amp;q=myapp/src/" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN"
+# → { "trigger": "@", "query": "myapp/src/", "suggestions": [ { "kind": "file", "label": "myapp/src/app.ts", "ref": { … } } ] }
+
+curl -s -X POST "$CLARKCANT_URL/conversations/&lt;conversationId&gt;/messages" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "text": "Xem giúp @myapp/src/app.ts", "references": { "version": 1, "items": [ &lt;ref đó&gt; ] } }'</code></pre>
+</div>
+<p>Tham chiếu là con trỏ, không phải quyền. Node kiểm lại từng tham chiếu khi tin nhắn tới: kỹ năng đã bị sửa hay gỡ, tệp không còn, dự án nằm ngoài các thư mục được phép, hay cuộc trò chuyện không còn tồn tại đều khiến cả tin nhắn bị từ chối với <code>400 REFERENCE_NOT_AVAILABLE</code>, có nêu tên tham chiếu, và không có gì được lưu. Tham chiếu được chấp nhận sẽ được lưu trên tin nhắn thành block <code>reference</code>, và lượt trả lời được báo về nó bằng đường dẫn tương đối với thư mục được phép, không bao giờ bằng đường dẫn tuyệt đối. Muốn đọc, chạy hay thay đổi thứ nó chỉ tới thì vẫn đi qua công cụ và chính sách như thường lệ.</p>
 
 <h2 id="stream">Stream câu trả lời (SSE)</h2>
 <div class="code" data-code>

@@ -101,13 +101,14 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
     <tr><td>GET</td><td><code>/node</code></td><td>–</td><td>Node id, label, fingerprint and configured model (<code>model</code> is <code>null</code> when none is set).</td></tr>
     <tr><td>GET</td><td><code>/conversations</code></td><td>–</td><td>List conversations.</td></tr>
     <tr><td>POST</td><td><code>/conversations</code></td><td><code>{ title? }</code></td><td><code>201 { conversationId, homeNodeId }</code></td></tr>
-    <tr><td>POST</td><td><code>/conversations/{id}/messages</code></td><td><code>{ text, attachmentIds? }</code></td><td>Waits for the answer; returns <code>{ resolution, taskId, messageIds, timeline }</code>, or <code>202</code> when the work continues in the background (read the timeline later).</td></tr>
-    <tr><td>POST</td><td><code>/conversations/{id}/messages/stream</code></td><td><code>{ text, attachmentIds? }</code></td><td>Streams the reply as Server-Sent Events (below).</td></tr>
+    <tr><td>POST</td><td><code>/conversations/{id}/messages</code></td><td><code>{ text, attachmentIds?, references? }</code></td><td>Waits for the answer; returns <code>{ resolution, taskId, messageIds, timeline }</code>, or <code>202</code> when the work continues in the background (read the timeline later).</td></tr>
+    <tr><td>POST</td><td><code>/conversations/{id}/messages/stream</code></td><td><code>{ text, attachmentIds?, references? }</code></td><td>Streams the reply as Server-Sent Events (below).</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/stop</code></td><td><code>{ source? }</code></td><td>Stops the reply this conversation is writing, and nothing else. What was already written is kept, labelled as stopped. Returns <code>{ stopped }</code>, which is <code>false</code> when no reply was running. A stop is audited with its source (<code>chat</code>, <code>voice</code>, or <code>api</code> when omitted).</td></tr>
     <tr><td>GET</td><td><code>/conversations/{id}/timeline?after=N</code></td><td>–</td><td>Messages (blocks: text/markdown, tool activity, reasoning, widgets…), pins, widget instances.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/questions/{questionId}/answer</code></td><td><code>{ text?, optionIds?, confirmed? }</code></td><td>Answers an <code>ask_user_question</code>; starts a new turn.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/questions/{questionId}/cancel</code></td><td>–</td><td>Cancels the question.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/export</code></td><td><code>{ sort?, query?, filters?, columns? }</code></td><td>Downloads a table widget as a CSV file (<code>text/csv</code>, named in <code>Content-Disposition</code>). The rows come from the table's own dataset: the sort, search and filters you send choose them over every column the table shows, exactly as on screen, and <code>columns</code> only picks which of those columns the file carries. The request cannot carry rows. A cell a spreadsheet would run as a formula is prefixed with <code>'</code>. Only the table's owner can export it, and the WebSocket relay, MCP and <code>clarkcant api</code> refuse it with <code>403 PERSON_ONLY</code>.</td></tr>
+    <tr><td>GET</td><td><code>/composer/suggestions?trigger=/|@&amp;q=&amp;conversationId=</code></td><td>–</td><td>What to offer after <code>/</code> (skills) or <code>@</code> (projects, files, folders, services, conversations, background work). At most 8 rows; each carries the <code>ref</code> to send, or a <code>disabledReason</code>. See <a href="#references">below</a>.</td></tr>
     <tr><td>POST</td><td><code>/stop</code></td><td>–</td><td>Emergency stop: kills running commands, interrupts turns, stops background work.</td></tr>
   </tbody>
 </table></div>
@@ -133,6 +134,21 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
 </div>
 <p>A typed sentence like “open settings” is resolved as an app intent by the host (<code>appIntent</code> in the response) instead of reaching the model.</p>
 <p class="note">Approvals are decided by a person on their own surfaces. That route is outside the stable description and is deliberately not exposed as an MCP tool.</p>
+
+<h2 id="references">Point at a skill, a project or a file</h2>
+<p>A message can carry up to 8 typed references beside its text: a skill, a project, a file or folder inside an indexed project, an MCP service, another conversation or a piece of background work. Ask <code>GET /composer/suggestions</code> for them rather than building them by hand, and send the <code>ref</code> of each row you choose.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>curl -s "$CLARKCANT_URL/composer/suggestions?trigger=@&amp;q=myapp/src/" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN"
+# → { "trigger": "@", "query": "myapp/src/", "suggestions": [ { "kind": "file", "label": "myapp/src/app.ts", "ref": { … } } ] }
+
+curl -s -X POST "$CLARKCANT_URL/conversations/&lt;conversationId&gt;/messages" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "text": "Review @myapp/src/app.ts", "references": { "version": 1, "items": [ &lt;the ref&gt; ] } }'</code></pre>
+</div>
+<p>A reference is a pointer, not a permission. The node checks each one again when the message arrives: a skill that was edited or removed, a file that is gone, a project outside the approved folders or a conversation that no longer exists refuses the whole message with <code>400 REFERENCE_NOT_AVAILABLE</code>, naming the reference, and nothing is stored. An accepted reference is stored on the message as a <code>reference</code> block, and the turn is told about it by paths relative to the approved folder, never absolute ones. Reading, running or changing what it points at still goes through the usual tools and policy.</p>
 
 <h2 id="stream">Stream the reply (SSE)</h2>
 <div class="code" data-code>
