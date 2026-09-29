@@ -207,6 +207,24 @@ for (;;) {
   -d '{ "optionIds": ["&lt;optionId&gt;"] }'</code></pre>
 </div>
 
+<h2 id="notice-actions">Xử lý một thông báo</h2>
+<p><code>GET /inbox</code> liệt kê các thông báo của bạn, và mỗi thông báo mang theo các <code>actions</code> hợp với điều nó nói tới ngay lúc này. Node tính lại chúng mỗi lần đọc, nên một thao tác không còn làm được vẫn được liệt kê, kèm lý do <code>unavailable</code> (<code>conversation-gone</code>, <code>work-gone</code>, <code>package-gone</code> hoặc <code>already-current</code>), thay vì thành một nút bấm vào thì lỗi. Mỗi thao tác đi tới một route riêng:</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Thao tác</th><th>Route</th><th>Tác dụng</th></tr></thead>
+  <tbody>
+    <tr><td>Chạy lại</td><td><code>POST /work/{id}/retry</code></td><td>Việc nền bị lỗi, bị dừng hoặc bị cắt ngang do khởi động lại sẽ chạy lại với đúng yêu cầu cũ, trong cùng hội thoại, thành một việc mới có id riêng. Mỗi lần chạy chỉ chạy lại được một lần: bấm lần thứ hai trả về <code>409 ALREADY_RETRIED</code>. Việc đã xong hoặc còn đang chạy trả về <code>409 WORK_NOT_RETRYABLE</code>, còn node đang bận trả về <code>429 BACKGROUND_BUSY</code> và để lần chạy đó vẫn chạy lại được sau.</td></tr>
+    <tr><td>Hỏi lại</td><td><code>POST /conversations/{id}/questions/{questionId}/ask-again</code></td><td>Một câu hỏi đã hết hạn mà chưa ai trả lời quay lại thành câu hỏi mới với cùng lời và cùng lựa chọn, và thẻ cũ ghi rằng nó đã được hỏi lại. Câu hỏi còn đang chờ trả về <code>409 QUESTION_OPEN</code>, câu đã được trả lời hoặc đã huỷ trả về <code>409 QUESTION_CLOSED</code>, và câu đã được hỏi lại trả về <code>409 ALREADY_ASKED_AGAIN</code>.</td></tr>
+    <tr><td>Cập nhật</td><td><code>POST /packages/install</code></td><td>Lần cài đặt bình thường với phiên bản thông báo nêu, nên mọi bước kiểm tra khi cài vẫn áp dụng. Nếu bị từ chối, bản bạn đang cài vẫn giữ nguyên.</td></tr>
+    <tr><td>Bỏ qua bản này</td><td><code>POST /inbox/notices/{id}/skip-version</code></td><td>Ngừng báo phiên bản đó của một gói hoặc của Pi, cùng các bản cũ hơn; bản mới hơn vẫn được báo. Phiên bản được đọc từ thông báo, không từ yêu cầu gửi lên. <code>…/unskip-version</code> hoàn tác việc này. Thông báo không phải về bản cập nhật trả về <code>409 NOT_AN_UPDATE</code>.</td></tr>
+  </tbody>
+</table></div>
+<p>Các phiên bản bạn đã bỏ qua nằm trong <code>skippedVersions</code> của <code>GET /inbox</code>, mới nhất trước. <code>DELETE /inbox/skipped-versions/{kind}/{name}/{version}</code> lấy lại một bản kể cả khi thông báo của nó đã không còn, với <code>kind</code> là <code>package</code> hoặc <code>pi</code> và mỗi phần được mã hoá URL, nên <code>@scope/name</code> vẫn dùng được.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>curl -s -X DELETE "$CLARKCANT_URL/inbox/skipped-versions/package/%40scope%2Fname/1.4.0" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
+</div>
+
 <h2 id="unknown-effects">Cho biết một hành động đã có hiệu lực hay chưa</h2>
 <p>Khi một lệnh tác động ra ngoài máy của bạn, chẳng hạn một lần push, hết thời gian hoặc bị dừng trước khi báo kết quả, không ai biết nó đã được thực hiện hay chưa. Tác vụ chờ ở trạng thái chưa rõ, không tự làm lại hành động đó, và hộp thư của bạn nhận một thông báo về nó với hai nút: “Đã có hiệu lực” và “Chưa có hiệu lực”. Câu trả lời được ghi lại cùng người trả lời và thời điểm, không thể đổi về sau, và quyết định kết cục của tác vụ: tác vụ chỉ thành công khi hành động đã có hiệu lực và lần chạy đã kiểm tra kết quả của nó.</p>
 <div class="code" data-code>

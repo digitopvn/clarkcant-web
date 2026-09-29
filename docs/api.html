@@ -207,6 +207,24 @@ for (;;) {
   -d '{ "optionIds": ["&lt;optionId&gt;"] }'</code></pre>
 </div>
 
+<h2 id="notice-actions">Act on a notice</h2>
+<p><code>GET /inbox</code> lists your notices, and each one carries the <code>actions</code> that fit what it names right now. Your node works them out on every read, so an action that can't be taken any more is still listed, with an <code>unavailable</code> reason (<code>conversation-gone</code>, <code>work-gone</code>, <code>package-gone</code> or <code>already-current</code>), instead of a button that fails. Each action goes to a route of its own:</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Action</th><th>Route</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>Run again</td><td><code>POST /work/{id}/retry</code></td><td>Background work that failed, was stopped or was cut off by a restart starts again with the same request, in the same conversation, as new work with its own id. It runs once per run: a second press answers <code>409 ALREADY_RETRIED</code>. Work that finished or is still running answers <code>409 WORK_NOT_RETRYABLE</code>, and a busy node answers <code>429 BACKGROUND_BUSY</code>, leaving the run free to be tried again.</td></tr>
+    <tr><td>Ask again</td><td><code>POST /conversations/{id}/questions/{questionId}/ask-again</code></td><td>A question that expired with nobody answering comes back as a new question with the same words and choices, and the old card says it was asked again. A question still waiting answers <code>409 QUESTION_OPEN</code>, one answered or cancelled answers <code>409 QUESTION_CLOSED</code>, and one already asked again answers <code>409 ALREADY_ASKED_AGAIN</code>.</td></tr>
+    <tr><td>Update</td><td><code>POST /packages/install</code></td><td>The ordinary install with the version the notice names, so every install check still applies. If it's refused, the version you have stays installed.</td></tr>
+    <tr><td>Skip this version</td><td><code>POST /inbox/notices/{id}/skip-version</code></td><td>Stops reporting that version of a package or of Pi, and older ones; a newer version is still reported. The version is read from the notice, not from the request. <code>…/unskip-version</code> takes it back. Any notice other than an update answers <code>409 NOT_AN_UPDATE</code>.</td></tr>
+  </tbody>
+</table></div>
+<p>The versions you skipped are listed in <code>skippedVersions</code> on <code>GET /inbox</code>, newest first. <code>DELETE /inbox/skipped-versions/{kind}/{name}/{version}</code> takes one back even after its notice is gone, with <code>kind</code> set to <code>package</code> or <code>pi</code> and each part URL-encoded, so <code>@scope/name</code> works.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>curl -s -X DELETE "$CLARKCANT_URL/inbox/skipped-versions/package/%40scope%2Fname/1.4.0" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
+</div>
+
 <h2 id="unknown-effects">Say whether an action took effect</h2>
 <p>When a command that reaches outside your machine, such as a push, runs out of time or is stopped before it reports, nobody knows whether it went through. The task waits as uncertain, does not try that action again on its own, and your inbox gets one notice about it with two buttons: “It took effect” and “It did not take effect”. The answer is recorded with who gave it and when, cannot be changed afterwards, and settles the task: it succeeded only when the action took effect and the run had checked its result.</p>
 <div class="code" data-code>
