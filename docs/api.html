@@ -292,6 +292,8 @@ curl -s -X POST "$CLARKCANT_URL/peers/&lt;nodeId&gt;/confirm" \
 <ul>
   <li>Notices can come from a paired node. They are marked as that node's, and carry no actions from it.</li>
   <li>When delivery to a paired node has been failing for more than 10 minutes, you get one notice for that outage, not one per message; if what is wrong changes, a new notice replaces it. It says what is wrong: the device has not answered since a given time, it answers but refuses, ClarkCant there failed to handle the messages, or sending stopped. It says whether what is owed stays queued and is still retried. The notice clears itself as soon as that node acknowledges anything again, or when you revoke the pairing.</li>
+  <li>When a node gives up on a message to a paired node, what it sends after that is still delivered, in order. Both owners get one notice. It says what failed, that later messages were kept, what happens to the tasks involved and what to do, then lists what was lost and for which task. A lost hand-over or stop settles its task, as failed if it never left your node. A lost result shows the handed-over task as uncertain in its conversation, because nobody can vouch for how it ended there. A lost question, answer or approval is not sent again, and whoever waits for it waits until it expires.</li>
+  <li>If the paired node runs a ClarkCant from before this, it cannot move past a lost message. You get one notice that the pairing is stuck and that updating ClarkCant on that device frees it. Once it is updated, it catches up by itself and the notice clears.</li>
 </ul>
 
 <h2 id="openapi">Generate a client</h2>
