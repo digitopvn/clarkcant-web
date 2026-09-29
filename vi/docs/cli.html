@@ -116,7 +116,7 @@ clarkcant status</code></pre>
     <tr><td><code>clarkcant new [title]</code></td><td>Tạo cuộc trò chuyện.</td></tr>
     <tr><td><code>clarkcant read &lt;conversationId&gt;</code></td><td>In cuộc trò chuyện.</td></tr>
     <tr><td><code>clarkcant stop</code></td><td>Dừng khẩn cấp.</td></tr>
-    <tr><td><code>clarkcant api &lt;METHOD&gt; &lt;path&gt; [jsonBody]</code></td><td>Gọi thô tới bất kỳ <a href="api.html#routes">route REST</a> nào, trừ các quyết định của con người (phê duyệt hành động cần kiểm soát, quyết định năng lực của package, xác nhận ý định với ứng dụng, báo cáo ứng dụng đã làm gì với một hành động agent yêu cầu, tin cậy một peer đã ghép cặp hoặc cấp quyền), trả về <code>403 PERSON_ONLY</code>.</td></tr>
+    <tr><td><code>clarkcant api &lt;METHOD&gt; &lt;path&gt; [jsonBody]</code></td><td>Gọi thô tới bất kỳ <a href="api.html#routes">route REST</a> nào, trừ các quyết định của con người (phê duyệt hành động cần kiểm soát, quyết định năng lực của package, xác nhận ý định với ứng dụng, báo cáo ứng dụng đã làm gì với một hành động agent yêu cầu, tin cậy một peer đã ghép cặp hoặc cấp quyền) hoặc việc xuất CSV của một bảng, trả về <code>403 PERSON_ONLY</code>.</td></tr>
     <tr><td><code>clarkcant mcp</code></td><td>MCP server qua stdio, nối tới <code>/mcp</code> của node (xem <a href="mcp.html#connect">MCP</a>).</td></tr>
     <tr><td><code>clarkcant discover</code></td><td>In <code>/.well-known/clarkcant.json</code>.</td></tr>
   </tbody>
