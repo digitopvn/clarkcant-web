@@ -207,6 +207,19 @@ for (;;) {
   -d '{ "optionIds": ["&lt;optionId&gt;"] }'</code></pre>
 </div>
 
+<h2 id="unknown-effects">Cho biết một hành động đã có hiệu lực hay chưa</h2>
+<p>Khi một lệnh tác động ra ngoài máy của bạn, chẳng hạn một lần push, hết thời gian hoặc bị dừng trước khi báo kết quả, không ai biết nó đã được thực hiện hay chưa. Tác vụ chờ ở trạng thái chưa rõ, không tự làm lại hành động đó, và hộp thư của bạn nhận một thông báo về nó với hai nút: “Đã có hiệu lực” và “Chưa có hiệu lực”. Câu trả lời được ghi lại cùng người trả lời và thời điểm, không thể đổi về sau, và quyết định kết cục của tác vụ: tác vụ chỉ thành công khi hành động đã có hiệu lực và lần chạy đã kiểm tra kết quả của nó.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>curl -s -X POST "$CLARKCANT_URL/effects/&lt;effectId&gt;/reconcile" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "outcome": "confirmed" }'
+# outcome: "confirmed" (đã có hiệu lực) hoặc "failed" (chưa có hiệu lực)</code></pre>
+</div>
+<p><code>source</code> (<code>click</code>, <code>chat</code> hoặc <code>voice</code>) là nhãn tuỳ chọn cho biết câu trả lời được đưa ra ở đâu; nhãn được lưu đúng như gửi và không chứng minh điều gì. Một hành động thuộc tác vụ của người khác, của node khác, hoặc không tồn tại trả về <code>404 RESOURCE_NOT_FOUND</code>; một hành động không còn ở trạng thái chưa rõ trả về <code>409 EFFECT_NOT_UNKNOWN</code>. Route này ghi lại quyết định của một người, nên relay WebSocket, MCP và <code>clarkcant api</code> từ chối nó với <code>403 PERSON_ONLY</code>: một AI client tự nói được rằng lần push của nó đã thành công thì cũng tự báo được thành công của chính nó.</p>
+<p class="note">Các hành động trên trình duyệt như gửi một biểu mẫu cũng được ghi vào cùng sổ này, nhưng hiện chưa có gì điều khiển trình duyệt cho một tác vụ trong bản chạy thật, nên hôm nay chỉ các lệnh dẫn tới đây.</p>
+
 <h2 id="stop">Dừng mọi thứ</h2>
 <div class="code" data-code>
 <button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
