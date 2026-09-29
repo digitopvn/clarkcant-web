@@ -214,6 +214,86 @@ for (;;) {
   -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
 </div>
 
+<h2 id="paired-nodes">Paired nodes</h2>
+<p>Two ClarkCant nodes can be paired, for example your laptop and a server. A paired node can tell the other what happened, put a notice in the other owner's inbox, and hand it a task, each only as far as the owner of the receiving node allowed.</p>
+<p class="note">These routes take the same token but are not in <code>/openapi.json</code> yet and may change. Confirming a peer and writing a grant are the owner's decisions: the WebSocket relay, MCP and <code>clarkcant api</code> refuse them with <code>403 PERSON_ONLY</code>. Today nodes talk plain HTTP to each other's gateway, so a node must be reachable over HTTP to pair, and a person checks the other node's key by comparing fingerprints.</p>
+
+<h3 id="pairing">Pair two nodes</h3>
+<p>One node invites, the other claims the invitation, and a person confirms on <strong>both</strong> nodes. Until both have confirmed, the peer is pending: nothing is sent to it and its messages are refused.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>POST</td><td><code>/peers/invites</code></td><td><code>{ endpoint }</code></td><td>On the inviting node, with the address the other node should reach it at. <code>201 { invite }</code> with <code>inviteId</code>, <code>issuerNodeId</code>, <code>endpoint</code>, <code>fingerprint</code> and <code>expiresAt</code>. Single use, valid for 10 minutes.</td></tr>
+    <tr><td>POST</td><td><code>/peers/claim</code></td><td><code>{ inviteId, node }</code></td><td>The claiming node calls this on the inviting node, without that node's token. <code>node</code> is the claimant's <code>{ nodeId, label, endpoint, publicKey, fingerprint, tokenHash }</code>. <code>200 { issuer, tokenHash }</code>, and the claimant is recorded as pending. <code>404 INVITE_UNKNOWN</code>; <code>409 INVITE_EXPIRED</code> or <code>INVITE_ALREADY_CLAIMED</code>; <code>400 FINGERPRINT_MISMATCH</code> when the fingerprint does not name the key offered.</td></tr>
+    <tr><td>POST</td><td><code>/peers/record</code></td><td><code>{ node }</code></td><td>On the claiming node: the <code>issuer</code> from the claim's answer, with the endpoint you reached it at and the answer's <code>tokenHash</code>. <code>201 { nodeId, trustedAt }</code>, still pending (<code>trustedAt</code> is <code>null</code>).</td></tr>
+    <tr><td>GET</td><td><code>/peers</code></td><td>–</td><td>Each peer's <code>nodeId</code>, <code>endpoint</code>, <code>fingerprint</code>, <code>pairedAt</code>, <code>trustedAt</code> and <code>revokedAt</code>.</td></tr>
+    <tr><td>POST</td><td><code>/peers/{nodeId}/confirm</code></td><td>–</td><td>A person's decision, made after comparing fingerprints: the invite carries the inviting node's, and <code>GET /node</code> shows each machine's own. <code>200 { nodeId, trusted: true }</code>; <code>404 PEER_UNKNOWN</code>.</td></tr>
+    <tr><td>POST</td><td><code>/peers/{nodeId}/revoke</code></td><td>–</td><td>Ends the pairing on this node: it takes no more messages from that peer and sends it none. <code>200 { nodeId, revoked: true }</code>; <code>404 PEER_UNKNOWN</code>.</td></tr>
+  </tbody>
+</table></div>
+<p>No token crosses the wire while pairing. Each node presents its peer a token derived from its own <code>localToken</code> (the base64url HMAC-SHA256 of <code>peer:&lt;peerNodeId&gt;</code>, keyed with <code>localToken</code>), and <code>tokenHash</code> is the hex SHA-256 of that token. Only the hash is stored.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>curl -s -X POST "$CLARKCANT_URL/peers/invites" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "endpoint": "http://laptop.local:8765" }'
+# 201 → { "invite": { "inviteId": "…", "fingerprint": "…", "expiresAt": "…", … } }
+
+# Once the other node has claimed it and you have compared fingerprints:
+curl -s -X POST "$CLARKCANT_URL/peers/&lt;nodeId&gt;/confirm" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
+</div>
+
+<h3 id="grants">Write a grant</h3>
+<p><code>POST /grants</code> takes one grant: <code>{ grantId, ownerPrincipalId, senderNodeId, receiverNodeId, capabilityRefs, resources, allowedDataClasses, expiresAt, budget?, maxDelegationDepth, allowedEffectCategories? }</code>. It names this node as the sender, this node's owner (<code>ownerPrincipalId</code> in <code>identity.json</code>) as the owner, and a confirmed peer as the receiver. The grant is stored and queued to the peer in one write, and from then on the peer accepts work this node hands it under that grant, until the grant expires or is withdrawn. The peer still runs only what its own owner allowed: it intersects the grant with its own allowance, so a grant can narrow what runs there but never widen it.</p>
+<ul>
+  <li><code>201 { grantId, receiverNodeId, allowedDataClasses }</code>.</li>
+  <li><code>400 INVALID_SCHEMA</code>, or <code>400 GRANT_NOT_OURS</code> when the sender is not this node; <code>403 NOT_THE_OWNER</code>; <code>404 PEER_UNKNOWN</code> when the receiver is not paired and confirmed.</li>
+</ul>
+<p>You rarely write one by hand. Setting up an automation in conversation that runs on a paired node writes the grant for exactly its folders, repositories and effects, and pausing or removing the automation withdraws that grant on both nodes.</p>
+
+<h3 id="peer-signals">Tell a paired node what happened</h3>
+<p><code>POST /peers/{nodeId}/signals</code> <code>{ id, topic, payload?, subject?, occurredAt? }</code>, sent to your own node with its own token. <code>id</code> is your name for the event. The signal is queued before it is sent, so it is not lost to a peer that is offline right now, and the peer records it once however often it is retried.</p>
+<ul>
+  <li><code>202 { messageId, queued: true }</code>.</li>
+  <li><code>404 PEER_UNKNOWN</code> when the peer is not paired and confirmed; <code>400</code> otherwise.</li>
+</ul>
+<p>The peer records it as <code>peer.&lt;topic&gt;</code> from the node the authenticated channel names, so it cannot pass for a GitHub delivery, a signed webhook or a timer. A signal is a fact, not a command: it needs no grant and asks for nothing, and only the standing requests the peer's owner set up there decide what, if anything, it starts.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>curl -s -X POST "$CLARKCANT_URL/peers/&lt;nodeId&gt;/signals" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "id": "build-812", "topic": "build.finished", "payload": { "status": "failed" } }'
+# 202 → { "messageId": "…", "queued": true }</code></pre>
+</div>
+
+<h3 id="peer-notices">Put a notice in the other owner's inbox</h3>
+<p><code>POST /peers/{nodeId}/notices</code> <code>{ id, title, body?, category?, severity? }</code>, sent to your own node with its own token. <code>id</code> is your name for the event. <code>category</code> is <code>result</code>, <code>update</code>, <code>message</code> (the default) or <code>alert</code>; <code>severity</code> is <code>info</code> (the default), <code>success</code>, <code>warning</code> or <code>error</code>. Nothing on a node sends notices by itself yet, so this route is how a script, the CLI, an MCP client or an automation tells a paired Clark.</p>
+<ul>
+  <li><code>202 { messageId, queued: true }</code>: queued, not yet taken by the peer.</li>
+  <li><code>404 PEER_UNKNOWN</code> when the peer is not paired and confirmed.</li>
+  <li><code>409 NOTICES_UNSUPPORTED</code> when the peer has not said it takes notices. A node learns that from the peer's answer to anything it delivers, so send that peer something first, a signal for example, and try again. If the peer runs a ClarkCant from before notices, update it there.</li>
+  <li><code>400</code> for anything else.</li>
+</ul>
+<p>A notice is words and nothing more: an <code>id</code> up to 160 characters, a title up to 120 and a body up to 500, with no actions, links or subject. The node that shows it decides what can be done with it, and treats its text as data. It is recorded as your node's, once per <code>id</code>, so a retry or a replay shows once. One peer keeps at most 20 notices waiting there, its oldest going first, without pushing out that node's own or another peer's.</p>
+<p>The receiving node takes a notice only on its own owner's decision to work with your node: a live grant that owner wrote to your node, or their allowance for your node to run work there. A grant your node wrote does not count, and neither does pairing alone. It also takes at most 30 a minute from one peer. A refusal is final, not a failed delivery: your node does not send that notice again, and tells you in your own inbox, once per peer and reason, what did not arrive, why, and what would change it.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>curl -s -X POST "$CLARKCANT_URL/peers/&lt;nodeId&gt;/notices" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "id": "backup-2026-09-30", "title": "Nightly backup failed", "severity": "error" }'
+# 202 → { "messageId": "…", "queued": true }</code></pre>
+</div>
+
+<h3 id="peer-inbox">In the inbox</h3>
+<ul>
+  <li>Notices can come from a paired node. They are marked as that node's, and carry no actions from it.</li>
+  <li>When delivery to a paired node has been failing for more than 10 minutes, you get one notice for that outage, not one per message; if what is wrong changes, a new notice replaces it. It says what is wrong: the device has not answered since a given time, it answers but refuses, ClarkCant there failed to handle the messages, or sending stopped. It says whether what is owed stays queued and is still retried. The notice clears itself as soon as that node acknowledges anything again, or when you revoke the pairing.</li>
+</ul>
+
 <h2 id="openapi">Generate a client</h2>
 <p>The stable surface is described by OpenAPI 3.1, so any OpenAPI 3.1 tool can generate a typed client from it:</p>
 <div class="code" data-code>
