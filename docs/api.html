@@ -245,6 +245,25 @@ for (;;) {
   -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
 </div>
 
+<h2 id="widget-files">Files a widget holds</h2>
+<p>A widget never gets a path. It holds a file as an <code>artifactRef</code>, <code>{ v, artifactId, kind, mimeType, sizeBytes, name, digest? }</code>, and your machine checks the widget's grant again every time the ref is used, so a ref copied elsewhere opens nothing. A grant lasts 24 hours, a file still being written is removed after 24 hours, and one file is at most 25 MiB. Every answer is a ref, bytes, or a refusal whose code says what was wrong.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>GET</td><td><code>/artifacts/{artifactId}</code></td><td>–</td><td>The artifact, with its <code>artifactRef</code>. Someone else's answers <code>404 ARTIFACT_NOT_FOUND</code>.</td></tr>
+    <tr><td>GET</td><td><code>/artifacts/{artifactId}/content</code></td><td>–</td><td>The bytes of a finished file. <code>409 ARTIFACT_NOT_FINALIZED</code> while it is still being written.</td></tr>
+    <tr><td>POST</td><td><code>/artifacts/{artifactId}/export</code></td><td><code>{ suggestedName? }</code></td><td>Save As: the bytes as a download under a file name, never a path. The WebSocket relay, MCP and <code>clarkcant api</code> refuse it with <code>403 PERSON_ONLY</code>.</td></tr>
+    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/artifacts</code></td><td><code>{ mimeType, name? }</code></td><td>A new file this widget may write. <code>201 { artifactRef }</code>.</td></tr>
+    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/artifacts/pick</code></td><td><code>{ name, mimeType, contentBase64, accept? }</code></td><td>A file the person chose, handed to this widget. Refused with <code>403 PERSON_ONLY</code> on the same relays.</td></tr>
+    <tr><td>GET</td><td><code>/conversations/{id}/widgets/{instanceId}/artifacts/{artifactId}/content?offset=&amp;length=</code></td><td>–</td><td><code>{ artifactRef, offset, eof, contentBase64 }</code>, at most 262,144 bytes per read.</td></tr>
+    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/artifacts/{artifactId}/chunks</code></td><td><code>{ offset, contentBase64 }</code></td><td>At most 262,144 bytes, starting where the file ends.</td></tr>
+    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/artifacts/{artifactId}/finalize</code></td><td>–</td><td>Fixes the bytes after checking them against the declared type.</td></tr>
+    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/artifacts/{artifactId}/attach</code></td><td>–</td><td><code>201 { artifactRef, attachmentRef }</code>. The file waits in the composer; the person sends it with their next message.</td></tr>
+    <tr><td>DELETE</td><td><code>/conversations/{id}/widgets/{instanceId}/artifacts/{artifactId}/grant</code></td><td>–</td><td>Takes this widget's access back.</td></tr>
+  </tbody>
+</table></div>
+<p class="note">These routes are in <code>/openapi.json</code>. Choosing a file and Save As are the person's own actions, so a widget asks the host for them and cannot do them itself. Replacing the file a widget opened is offered only in the desktop app.</p>
+
 <h2 id="paired-nodes">Paired nodes</h2>
 <p>Two ClarkCant nodes can be paired, for example your laptop and a server. A paired node can tell the other what happened, put a notice in the other owner's inbox, and hand it a task, each only as far as the owner of the receiving node allowed.</p>
 <p class="note">These routes take the same token but are not in <code>/openapi.json</code> yet and may change. Confirming a peer and writing a grant are the owner's decisions: the WebSocket relay, MCP and <code>clarkcant api</code> refuse them with <code>403 PERSON_ONLY</code>. Today nodes talk plain HTTP to each other's gateway, so a node must be reachable over HTTP to pair, and a person checks the other node's key by comparing fingerprints.</p>
