@@ -147,7 +147,7 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
     <tr><td><code>delta</code></td><td>More reply text: <code>{ text }</code>.</td></tr>
     <tr><td><code>reasoning</code></td><td>Reasoning from the model, kept apart from what it says to the user.</td></tr>
     <tr><td><code>tool-start</code>, <code>tool-end</code></td><td>A tool call began or finished.</td></tr>
-    <tr><td><code>host-control</code></td><td>A control event for the host app.</td></tr>
+    <tr><td><code>host-control</code></td><td>The agent asks the app to change something: open Settings on a tab, switch the model, open or end voice mode, go back to the conversation. See <a href="#host-control">below</a>.</td></tr>
     <tr><td><code>error</code></td><td>The turn hit an error.</td></tr>
     <tr><td><code>done</code></td><td>Final event: <code>{ resolution, taskId, messageIds, timeline }</code>.</td></tr>
   </tbody>
@@ -168,6 +168,10 @@ for (;;) {
   console.log(value); // raw Server-Sent Events: delta, tool-start, …, done
 }</code></pre>
 </div>
+
+<h3 id="host-control">When the agent changes the app</h3>
+<p>A <code>host-control</code> event the agent asked for carries a <code>controlId</code>. The app carries the action out, then answers with <code>POST /app-intents/host-control/&lt;controlId&gt;</code> <code>{ "ran": true|false, "say": "…" }</code>. The agent is told that answer, so Clark says the app changed only when the app reports it did, and passes on the app's reason when it could not. With no answer within a few seconds, the agent is told the action is unconfirmed. Each <code>controlId</code> is answered once, and the waiting-for-the-answer route (<code>/messages</code>) never waits for it. Answering is a person's surface: the WebSocket relay, MCP and <code>clarkcant api</code> refuse it with <code>403 PERSON_ONLY</code>.</p>
+<p>In the audit record, an action the agent asked for while answering something you said is marked <code>voice-agent</code>, separate from a command you spoke yourself (<code>voice</code>).</p>
 
 <h2 id="timeline">Read a conversation</h2>
 <div class="code" data-code>
