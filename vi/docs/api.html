@@ -134,6 +134,7 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
 # → { "resolution": …, "taskId": "…", "messageIds": […], "timeline": … }</code></pre>
 </div>
 <p>Một câu gõ như “open settings” được host hiểu là ý định với ứng dụng (<code>appIntent</code> trong response) thay vì gửi tới model.</p>
+<p>Trong ô soạn tin, tệp đã chọn vẫn nằm cùng draft khi đang kiểm tra tải lên. Nút Gửi bị vô hiệu trong lúc đó; nhấn Enter không gửi hay xoá nội dung và tệp. Khi tải lên xong, hãy gửi tin nhắn như bình thường. Tệp tải lỗi vẫn giữ lý do đã nêu và không được gửi cùng tin nhắn.</p>
 <p class="note">Việc phê duyệt do con người quyết định trên giao diện của chính họ. Route đó nằm ngoài mô tả ổn định và cố ý không có tool MCP.</p>
 
 <h2 id="references">Chỉ tới một kỹ năng, một dự án hay một tệp</h2>
@@ -284,6 +285,10 @@ for (;;) {
   -d '{ "value": "package:com.example.theme-dusk#dusk" }'</code></pre>
 </div>
 
+<h3 id="reference-themes">Gói chủ đề tham chiếu</h3>
+<p><a href="https://github.com/digitopvn/clarkcant/tree/main/examples/themes/pixel-arcade">Pixel Arcade</a> và <a href="https://github.com/digitopvn/clarkcant/tree/main/examples/themes/neo-brutalism">Neo Brutalism</a> là ví dụ chỉ chứa dữ liệu trong checkout ClarkCant. Cài qua vòng đời package hiện có, rồi chọn trong Cài đặt → Trải nghiệm hoặc xem trước trong Theme Lab. Tham chiếu của chúng là <code>package:org.clarkcant.pixel-arcade#pixel-arcade</code> và <code>package:org.clarkcant.neo-brutalism#neo-brutalism</code>. Đây là gói trong checkout; xuất bản trên marketplace vẫn là bước riêng.</p>
+<p>Pixel Arcade có khung vuông, nút vát cạnh, bóng cứng, đường quét có giới hạn, chuyển động theo bước và Orb Plasma mặc định. Neo Brutalism có viền dày, bóng lệch, tiêu đề đậm, nút nổi và Orb Glass mặc định. Cả hai thích ứng qua cùng đường diện mạo của host, widget built-in/khai báo, snapshot widget cách ly và cửa sổ tách rời. Lựa chọn Orb riêng thắng các mặc định này; giảm chuyển động luôn thắng. Clark Default giữ nguyên.</p>
+<p>Mỗi gói ghi giấy phép Apache-2.0 và nguồn. Phông là profile do host sở hữu với fallback hệ thống: Pixel Arcade dùng mono cho tiêu đề, typewriter cho mã và system dễ đọc cho nội dung; Neo Brutalism dùng system cho nội dung/tiêu đề và stack mono của host. Không đóng gói hay tải tệp phông. Phông thực tế có thể khác nhau giữa hệ điều hành.</p>
 <h3 id="theme-lab">Xem trước và tùy chỉnh</h3>
 <p>Mở Cài đặt → Trải nghiệm → Duyệt chủ đề để vào Theme Lab. Nó dùng component sản phẩm thật với các ví dụ cục bộ được ghi rõ. Xem trước chủ đề đã cài giữ hội thoại, draft và focus; chỉ <em>Dùng chủ đề này</em> mới lưu lựa chọn. Chủ đề dùng gần đây do cùng bộ ghi preference lưu lại (tối đa sáu tham chiếu khác nhau); tham chiếu không còn trên node này không hiện thành nút gần đây.</p>
 <p><code>GET /appearance?themeRef=&lt;tham chiếu đã encode&gt;</code> phân giải chủ đề đã cài và kiểm tra để xem trước, không đổi preference. Tham chiếu sai hình dạng trả <code>400</code>; chủ đề không có trả fallback Clark Default thông thường. Diện mạo cá nhân trả thêm <code>customization: { accent, density }</code> khi có. Accent là <code>null</code> để dùng màu của chủ đề hoặc <code>{ dark: "#7AA2F7", light: "#2453A8" }</code>; density là <code>comfortable</code> hoặc <code>compact</code>. Ghi qua <code>PUT /preferences/experience.accent</code> và <code>PUT /preferences/experience.density</code> với <code>{ value }</code>. Màu nhấn khó đọc hoặc che trạng thái được bảo vệ trả <code>409</code> trước khi đổi preference. Compiler chọn màu chữ dễ đọc trên nút nhấn; mật độ gọn giữ nguyên typography và giới hạn bố cục tối thiểu. Cả hai lựa chọn tới widget và cửa sổ detached qua cùng snapshot appearance.</p>
