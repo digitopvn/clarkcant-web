@@ -260,15 +260,15 @@ for (;;) {
 # outcome: "confirmed" (đã có hiệu lực) hoặc "failed" (chưa có hiệu lực)</code></pre>
 </div>
 <p><code>source</code> (<code>click</code>, <code>chat</code> hoặc <code>voice</code>) là nhãn tuỳ chọn cho biết câu trả lời được đưa ra ở đâu; nhãn được lưu đúng như gửi và không chứng minh điều gì. Một hành động thuộc tác vụ của người khác, của node khác, hoặc không tồn tại trả về <code>404 RESOURCE_NOT_FOUND</code>; một hành động không còn ở trạng thái chưa rõ trả về <code>409 EFFECT_NOT_UNKNOWN</code>. Route này ghi lại quyết định của một người, nên relay WebSocket, MCP và <code>clarkcant api</code> từ chối nó với <code>403 PERSON_ONLY</code>: một AI client tự nói được rằng lần push của nó đã thành công thì cũng tự báo được thành công của chính nó.</p>
-<p class="note">Các hành động trên trình duyệt như gửi một biểu mẫu cũng được ghi vào cùng sổ này, nhưng hiện chưa có gì điều khiển trình duyệt cho một tác vụ trong bản chạy thật, nên hôm nay chỉ các lệnh dẫn tới đây.</p>
+<p class="note">Một tác vụ website chạy nền ghi các lần gửi biểu mẫu và những cú nhấp khác có thể làm thay đổi điều gì đó vào cùng sổ này. Khi một biểu mẫu đã được gửi đi mà không nhận được trả lời, kết quả là chưa rõ, biểu mẫu không bị gửi lại, và nó dẫn tới đây.</p>
 
 <h2 id="themes">Chọn chủ đề</h2>
-<p>Chủ đề quy định màu sắc và độ bo góc của Clark. Nó tách biệt với chế độ màu (sáng, tối hoặc theo hệ thống), vốn vẫn áp dụng bên trong mọi chủ đề. Clark Default có sẵn, và các chủ đề khác đến từ những gói đã cài có khai báo facet <code>themes</code>. Chủ đề chỉ là dữ liệu: nó không chạy được mã, không thêm được style toàn cục, không với ra ngoài gói của nó và không tải được gì. Mọi chủ đề đều phải qua cùng phép kiểm tra độ tương phản như Clark Default, và chủ đề có màu quá sát nhau để đọc sẽ không được đưa ra để chọn. Các route này dùng cùng token nhưng chưa có trong <code>/openapi.json</code> và có thể thay đổi.</p>
+<p>Chủ đề quy định màu sắc và độ bo góc của Clark, và từ appearance API 2 là cả phần còn lại của diện mạo (<a href="#theme-depth">xem bên dưới</a>). Nó tách biệt với chế độ màu (sáng, tối hoặc theo hệ thống), vốn vẫn áp dụng bên trong mọi chủ đề. Clark Default có sẵn, và các chủ đề khác đến từ những gói đã cài có khai báo facet <code>themes</code>. Chủ đề chỉ là dữ liệu: nó không chạy được mã, không thêm được style toàn cục, không với ra ngoài gói của nó và không tải được gì. Mọi chủ đề đều phải qua cùng phép kiểm tra độ tương phản như Clark Default và một phép kiểm tra giữ các trạng thái được bảo vệ tách biệt nhau, và chủ đề trượt một trong hai sẽ không được đưa ra để chọn. Các route này dùng cùng token nhưng chưa có trong <code>/openapi.json</code> và có thể thay đổi.</p>
 <div class="table-wrap" tabindex="0"><table>
   <thead><tr><th>Method</th><th>Đường dẫn</th><th>Body</th><th>Ghi chú</th></tr></thead>
   <tbody>
     <tr><td>GET</td><td><code>/themes</code></td><td>–</td><td><code>{ themes, problems, unchecked }</code>. Clark Default đứng đầu, sau đó là từng chủ đề của gói kèm <code>themeRef</code> (<code>package:&lt;package id&gt;#&lt;theme id&gt;</code>) và nơi cung cấp: package id, phiên bản, digest, làn tin cậy và nguồn. <code>problems</code> nêu từng chủ đề không thể đưa ra và lý do; chủ đề trượt kiểm tra độ tương phản có kèm danh sách <code>contrast</code> các cặp màu không đạt. <code>unchecked</code> nêu từng gói mà node này không đọc được tệp.</td></tr>
-    <tr><td>GET</td><td><code>/appearance</code></td><td>–</td><td><code>{ selectedRef, appliedRef, theme, provider, fallback }</code>: điều bạn đã chọn và điều đang được vẽ. Khi lựa chọn không vẽ được, Clark Default được vẽ thay, lựa chọn của bạn vẫn được giữ, và <code>fallback</code> cho biết lý do bằng <code>THEME_NOT_INSTALLED</code>, <code>THEME_INVALID</code>, <code>THEME_LOW_CONTRAST</code>, <code>THEME_UNAVAILABLE</code> hoặc <code>THEME_UNKNOWN</code>. Cài lại gói, hoặc lùi bản cập nhật đã làm hỏng nó, sẽ đưa chủ đề trở lại mà không cần chọn lại.</td></tr>
+    <tr><td>GET</td><td><code>/appearance</code></td><td>–</td><td><code>{ selectedRef, appliedRef, theme, provider, fallback }</code>: điều bạn đã chọn và điều đang được vẽ. Khi lựa chọn không vẽ được, Clark Default được vẽ thay, lựa chọn của bạn vẫn được giữ, và <code>fallback</code> cho biết lý do bằng <code>THEME_NOT_INSTALLED</code>, <code>THEME_INVALID</code>, <code>THEME_LOW_CONTRAST</code>, <code>THEME_PROTECTED</code>, <code>THEME_UNAVAILABLE</code> hoặc <code>THEME_UNKNOWN</code>. Cài lại gói, hoặc lùi bản cập nhật đã làm hỏng nó, sẽ đưa chủ đề trở lại mà không cần chọn lại.</td></tr>
     <tr><td>PUT</td><td><code>/preferences/experience.themeRef</code></td><td><code>{ value }</code></td><td>Chọn một chủ đề: <code>builtin:clark</code>, hoặc một <code>themeRef</code> từ <code>/themes</code>. Tham chiếu mà node này không vẽ được sẽ bị từ chối với <code>409</code> cùng mã và lý do tương ứng, và không có gì được lưu. Giá trị hoàn toàn không phải là tham chiếu trả về <code>400 PREFERENCE_INVALID</code>.</td></tr>
   </tbody>
 </table></div>
@@ -280,6 +280,38 @@ for (;;) {
   -H "Content-Type: application/json" \
   -d '{ "value": "package:com.example.theme-dusk#dusk" }'</code></pre>
 </div>
+
+<h3 id="theme-depth">Phần còn lại của diện mạo (appearance API 2)</h3>
+<p>Từ appearance API 2 (<code>"appearanceApi": { "min": 2, "max": 2 }</code>), chủ đề có thể đặt toàn bộ diện mạo chứ không chỉ màu sắc. Mỗi thiết lập là một cái tên hoặc một con số có giới hạn, và ClarkCant tự viết CSS:</p>
+<ul>
+  <li><code>typography</code>: <code>body</code> và <code>display</code> chọn trong <code>clark</code>, <code>system</code>, <code>serif</code>, <code>rounded</code>, <code>mono</code>; <code>mono</code> chọn trong <code>clark</code>, <code>typewriter</code>; <code>headingWeight</code> từ 400 đến 800.</li>
+  <li><code>border</code>: <code>width</code> từ 1 đến 3 px, <code>style</code> là <code>solid</code> hoặc <code>dashed</code>.</li>
+  <li><code>shadow</code>: <code>style</code> là <code>soft</code>, <code>hard</code> hoặc <code>none</code>. Với bóng cứng, <code>offset</code> từ 1 đến 8 px và <code>color</code> là <code>text</code>, <code>border</code> hoặc <code>accent</code>.</li>
+  <li><code>motion</code>: <code>speed</code> từ 0,5 đến 2, <code>easing</code> là <code>standard</code>, <code>snappy</code>, <code>linear</code> hoặc <code>stepped</code>.</li>
+  <li><code>icons.stroke</code>: từ 1 đến 2,5. <code>radius.field</code>: từ 0 đến 2 rem.</li>
+  <li><code>recipes</code>: <code>button</code> là quiet, outlined, solid, raised hoặc beveled; <code>card</code> là flat, outlined hoặc raised; <code>input</code> là quiet, filled, outlined hoặc underlined; <code>modal</code> là floating hoặc framed; <code>badge</code> là pill, rounded hoặc square; <code>composer</code> là floating, integrated hoặc framed.</li>
+  <li><code>effects</code>: <code>backdrop.kind</code> là dot-grid, hard-grid, scanlines, grain hoặc paper, với <code>intensity</code> từ 0 đến 1 và <code>scale</code> từ 8 đến 48 px; <code>surface.kind</code> là glass, soft-glow, paper hoặc grain, với <code>intensity</code> từ 0 đến 1. Ánh sáng theo con trỏ trên lớp nền mạnh theo cường độ của lớp nền và không bao giờ sáng hơn ánh sáng của chính Clark. Kính phủ thẻ widget và ô soạn tin bằng một lớp mờ đục; chỉ hộp thoại là trong suốt và làm mờ nền.</li>
+  <li><code>orb</code>: <code>profile</code> Orb mặc định và <code>palette</code> tuỳ chọn gồm các bộ ba màu từ 0 đến 1 cho mọi kênh của Orb trừ <code>canvas</code>, kênh do trang luôn tự cung cấp. Nó chỉ có tác dụng cho đến khi bạn tự chọn Orb.</li>
+</ul>
+<p>Chủ đề không được chứa CSS, selector, URL, tệp font hay ảnh, và trường, recipe hay hiệu ứng lạ, hoặc giá trị ngoài giới hạn, đều bị từ chối. Chủ đề phải qua hai phép kiểm tra ở cả chế độ sáng và tối: kiểm tra độ tương phản và kiểm tra trạng thái được bảo vệ. Phép kiểm tra trạng thái được bảo vệ yêu cầu:</p>
+<ul>
+  <li>màu nguy hiểm, cảnh báo, thành công và màu nhấn phải khác nhau, và mỗi màu trạng thái phải khác chữ thường;</li>
+  <li>vòng focus phải khác màu viền, và chữ bị vô hiệu hoá phải khác chữ đang dùng được;</li>
+  <li>viền thẻ phải thấy được trên thẻ và trên nền trang;</li>
+  <li>chữ, màu trạng thái, màu nhấn và vòng focus phải đọc được trên mọi bề mặt có hiệu ứng, và trên nền trang dưới lớp nền cùng ánh sáng theo con trỏ. Hộp thoại được đo trên nền trang sáng nhất và tối nhất mà lớp phủ của nó có thể che, nên kính quá mạnh hay hoa văn dày được chiếu sáng sẽ bị từ chối;</li>
+  <li>ánh sáng của Orb phải thấy được trên nền trang, nên bảng màu tối đến mức làm Orb biến mất sẽ bị từ chối.</li>
+</ul>
+<p>Chủ đề không đạt sẽ không được đưa ra để chọn. <code>/themes</code> liệt kê nó trong <code>problems</code> kèm từng mục không đạt, và chọn nó sẽ nhận <code>409</code> với <code>THEME_LOW_CONTRAST</code> (kèm danh sách <code>contrast</code>) hoặc <code>THEME_PROTECTED</code> (kèm danh sách <code>protected</code> gồm <code>{ scheme, check, first, second, value, minimum }</code>). <code>check</code> là <code>status-distinct</code>, <code>status-vs-text</code>, <code>focus-vs-border</code>, <code>disabled-distinct</code>, <code>edge-visible</code>, <code>surface-readable</code> hoặc <code>orb-visible</code>, và <code>first</code> là <code>"orb"</code> với <code>orb-visible</code>. <code>THEME_PROTECTED</code> cũng có thể là mã <code>fallback</code> của <code>/appearance</code>. Hãy diễn đạt từng mã bằng ngôn ngữ của người đọc, và diễn đạt một mã bạn không biết bằng một câu chung.</p>
+<p>Dù chủ đề nói gì, có những thứ luôn do ClarkCant kiểm soát:</p>
+<ul>
+  <li>vòng focus và các điều khiển bị vô hiệu hoá;</li>
+  <li>các thẻ duyệt, thông tin xác thực và kết nối của chính host: đường viền và bề mặt trơn của chúng, không kính, không vân, không phát sáng, không bóng;</li>
+  <li>các nút trong những thẻ ấy và trong hộp thư, cùng nút Dừng. Đó là nút của chính ClarkCant mang màu của chủ đề, nên nút Phê duyệt luôn được tô màu nhấn còn nút Từ chối bên cạnh vẫn trơn;</li>
+  <li>chế độ giảm chuyển động, dù đến từ hệ điều hành hay từ Cài đặt → Trải nghiệm → Chuyển động → Giảm. Khi đó mọi thời lượng bằng không, ánh sáng theo con trỏ trên nền tắt và Orb đứng yên.</li>
+</ul>
+
+<h3 id="appearance-intents">Đổi diện mạo bằng cách yêu cầu</h3>
+<p>Bạn cũng đổi được diện mạo bằng cách nói với Clark, bằng giọng nói, hoặc qua <code>POST /app-intents</code> với <code>appearance.set-theme</code> (<code>themeRef</code>), <code>appearance.set-color-scheme</code> (<code>colorScheme</code>: <code>light</code>, <code>dark</code> hoặc <code>system</code>), <code>appearance.reset</code> (Clark Default, theo hệ thống) hoặc <code>appearance.open-theme-gallery</code>. Mỗi yêu cầu lưu lựa chọn giống như bộ chọn trong Cài đặt, và không yêu cầu nào hỏi xác nhận. Chủ đề được đối chiếu với các chủ đề của node này và bị từ chối bằng một câu nói rõ khi không vẽ được. Một yêu cầu làm việc, như "make a dark theme", được chuyển cho Clark thay vì đổi chế độ màu. Các câu có sẵn ("switch to dark mode", "chuyển giao diện sang tối") giữ nguyên nghĩa kể cả khi có chủ đề đã cài tên "Dark"; chủ đề như vậy được chọn từ bộ chọn hoặc qua agent.</p>
 
 <h2 id="stop">Dừng mọi thứ</h2>
 <div class="code" data-code>

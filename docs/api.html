@@ -260,15 +260,15 @@ for (;;) {
 # outcome: "confirmed" (it took effect) or "failed" (it did not)</code></pre>
 </div>
 <p><code>source</code> (<code>click</code>, <code>chat</code> or <code>voice</code>) is an optional label for where the answer was given; it is stored as sent and proves nothing. An effect of another person's task, of another node, or one that does not exist answers <code>404 RESOURCE_NOT_FOUND</code>; one that is no longer unknown answers <code>409 EFFECT_NOT_UNKNOWN</code>. This records a person's decision, so the WebSocket relay, MCP and <code>clarkcant api</code> refuse it with <code>403 PERSON_ONLY</code>: an AI client that could say its own push landed could report its own success.</p>
-<p class="note">Browser actions such as a form submit are written to the same ledger, but nothing drives the browser for a task in production yet, so today only commands lead here.</p>
+<p class="note">A background website task writes its form submits and other clicks that could change something to the same ledger. When a submit went out and no answer came back, the effect is unknown, the form is not sent again, and it leads here.</p>
 
 <h2 id="themes">Choose a theme</h2>
-<p>A theme sets Clark's colours and corner radii. It is separate from the colour scheme (light, dark or follow the system), which still applies inside every theme. Clark Default is built in, and more themes come from installed packages that declare a <code>themes</code> facet. A theme is only data: it can't run code, add global styles, reach outside its package or fetch anything. Every theme is held to the same contrast check as Clark Default, and one whose colours are too close to read isn't offered. These routes take the same token but are not in <code>/openapi.json</code> yet and may change.</p>
+<p>A theme sets Clark's colours and corner radii, and from appearance API 2 the rest of the look (<a href="#theme-depth">see below</a>). It is separate from the colour scheme (light, dark or follow the system), which still applies inside every theme. Clark Default is built in, and more themes come from installed packages that declare a <code>themes</code> facet. A theme is only data: it can't run code, add global styles, reach outside its package or fetch anything. Every theme is held to the same contrast check as Clark Default and to a check that keeps protected states apart, and one that fails either isn't offered. These routes take the same token but are not in <code>/openapi.json</code> yet and may change.</p>
 <div class="table-wrap" tabindex="0"><table>
   <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Notes</th></tr></thead>
   <tbody>
     <tr><td>GET</td><td><code>/themes</code></td><td>–</td><td><code>{ themes, problems, unchecked }</code>. Clark Default comes first, then each package theme with its <code>themeRef</code> (<code>package:&lt;package id&gt;#&lt;theme id&gt;</code>) and its provider: package id, version, digest, trust lane and source. <code>problems</code> names each theme that can't be offered and why; one that failed the contrast check carries a <code>contrast</code> list of the failing pairs. <code>unchecked</code> names each package whose files this node couldn't read.</td></tr>
-    <tr><td>GET</td><td><code>/appearance</code></td><td>–</td><td><code>{ selectedRef, appliedRef, theme, provider, fallback }</code>: what you chose and what is drawn. When the choice can't be drawn, Clark Default is drawn instead, your choice is kept, and <code>fallback</code> says why with <code>THEME_NOT_INSTALLED</code>, <code>THEME_INVALID</code>, <code>THEME_LOW_CONTRAST</code>, <code>THEME_UNAVAILABLE</code> or <code>THEME_UNKNOWN</code>. Reinstalling the package, or rolling back an update that broke it, brings the theme back without choosing it again.</td></tr>
+    <tr><td>GET</td><td><code>/appearance</code></td><td>–</td><td><code>{ selectedRef, appliedRef, theme, provider, fallback }</code>: what you chose and what is drawn. When the choice can't be drawn, Clark Default is drawn instead, your choice is kept, and <code>fallback</code> says why with <code>THEME_NOT_INSTALLED</code>, <code>THEME_INVALID</code>, <code>THEME_LOW_CONTRAST</code>, <code>THEME_PROTECTED</code>, <code>THEME_UNAVAILABLE</code> or <code>THEME_UNKNOWN</code>. Reinstalling the package, or rolling back an update that broke it, brings the theme back without choosing it again.</td></tr>
     <tr><td>PUT</td><td><code>/preferences/experience.themeRef</code></td><td><code>{ value }</code></td><td>Chooses a theme: <code>builtin:clark</code>, or a <code>themeRef</code> from <code>/themes</code>. A reference this node can't draw is refused with <code>409</code> and the same code and reason, and nothing is stored. A value that isn't a reference at all answers <code>400 PREFERENCE_INVALID</code>.</td></tr>
   </tbody>
 </table></div>
@@ -280,6 +280,38 @@ for (;;) {
   -H "Content-Type: application/json" \
   -d '{ "value": "package:com.example.theme-dusk#dusk" }'</code></pre>
 </div>
+
+<h3 id="theme-depth">The rest of the look (appearance API 2)</h3>
+<p>From appearance API 2 (<code>"appearanceApi": { "min": 2, "max": 2 }</code>), a theme can set the whole look, not only colours. Each setting is a name or a bounded number, and ClarkCant writes the CSS:</p>
+<ul>
+  <li><code>typography</code>: <code>body</code> and <code>display</code> from <code>clark</code>, <code>system</code>, <code>serif</code>, <code>rounded</code>, <code>mono</code>; <code>mono</code> from <code>clark</code>, <code>typewriter</code>; <code>headingWeight</code> 400–800.</li>
+  <li><code>border</code>: <code>width</code> 1–3 px, <code>style</code> <code>solid</code> or <code>dashed</code>.</li>
+  <li><code>shadow</code>: <code>style</code> <code>soft</code>, <code>hard</code> or <code>none</code>. For a hard shadow, <code>offset</code> 1–8 px and <code>color</code> <code>text</code>, <code>border</code> or <code>accent</code>.</li>
+  <li><code>motion</code>: <code>speed</code> 0.5–2, <code>easing</code> <code>standard</code>, <code>snappy</code>, <code>linear</code> or <code>stepped</code>.</li>
+  <li><code>icons.stroke</code>: 1–2.5. <code>radius.field</code>: 0–2 rem.</li>
+  <li><code>recipes</code>: <code>button</code> quiet, outlined, solid, raised or beveled; <code>card</code> flat, outlined or raised; <code>input</code> quiet, filled, outlined or underlined; <code>modal</code> floating or framed; <code>badge</code> pill, rounded or square; <code>composer</code> floating, integrated or framed.</li>
+  <li><code>effects</code>: <code>backdrop.kind</code> dot-grid, hard-grid, scanlines, grain or paper, with <code>intensity</code> 0–1 and <code>scale</code> 8–48 px; <code>surface.kind</code> glass, soft-glow, paper or grain, with <code>intensity</code> 0–1. The light that follows the pointer over the backdrop scales with the backdrop's intensity and is never brighter than Clark's own. Glass tints widget cards and the composer with an opaque frost; only the modal is translucent and blurred.</li>
+  <li><code>orb</code>: a default Orb <code>profile</code> and an optional <code>palette</code> of 0–1 colour triples for every Orb channel except <code>canvas</code>, which the page always supplies. It applies only until you choose an Orb yourself.</li>
+</ul>
+<p>A theme can't contain CSS, selectors, URLs, font files or images, and an unknown field, recipe or effect, or a value out of range, is refused. A theme must pass two checks in both light and dark: the contrast check and the protected-state check. The protected-state check requires that:</p>
+<ul>
+  <li>danger, warning, success and the accent stay distinct, and each status stays distinct from body text;</li>
+  <li>the focus ring is distinct from edges, and disabled text is distinct from enabled text;</li>
+  <li>card edges stay visible on the card and on the page;</li>
+  <li>text, status colours, the accent and the focus ring stay readable on every surface an effect finishes, and on the page under the backdrop and its pointer light. The modal is measured over the brightest and the darkest page its scrim can cover, so strong glass or a dense lit pattern is refused;</li>
+  <li>the Orb's light stays visible against the page, so a palette dark enough to hide it is refused.</li>
+</ul>
+<p>A theme that fails isn't offered. <code>/themes</code> lists it under <code>problems</code> with each failing check, and choosing it answers <code>409</code> with <code>THEME_LOW_CONTRAST</code> (with a <code>contrast</code> list) or <code>THEME_PROTECTED</code> (with a <code>protected</code> list of <code>{ scheme, check, first, second, value, minimum }</code>). <code>check</code> is <code>status-distinct</code>, <code>status-vs-text</code>, <code>focus-vs-border</code>, <code>disabled-distinct</code>, <code>edge-visible</code>, <code>surface-readable</code> or <code>orb-visible</code>, and <code>first</code> is <code>"orb"</code> for <code>orb-visible</code>. <code>THEME_PROTECTED</code> can also be the <code>fallback</code> code of <code>/appearance</code>. Word each code in your reader's language, and word a code you don't know with a generic sentence.</p>
+<p>Some things always stay under ClarkCant's control, whatever the theme says:</p>
+<ul>
+  <li>focus rings and disabled controls;</li>
+  <li>the host's own approval, credential and connection cards: their edge and their plain surface, with no glass, texture, glow or shadow;</li>
+  <li>the buttons in those cards and in the inbox, and Stop. They are ClarkCant's own buttons in the theme's colours, so an approval's Approve stays filled with the accent and its Deny stays plain beside it;</li>
+  <li>reduced motion, whether it comes from the operating system or from Settings → Experience → Motion → Reduced. Every duration is then none, the backdrop's pointer light is off and the Orb is still.</li>
+</ul>
+
+<h3 id="appearance-intents">Change the look by asking</h3>
+<p>You can also change the look by asking Clark, by voice, or through <code>POST /app-intents</code> with <code>appearance.set-theme</code> (<code>themeRef</code>), <code>appearance.set-color-scheme</code> (<code>colorScheme</code>: <code>light</code>, <code>dark</code> or <code>system</code>), <code>appearance.reset</code> (Clark Default, following the system) or <code>appearance.open-theme-gallery</code>. Each one stores your choice the same way the Settings picker does, and none of them asks for confirmation. A theme is checked against this node's themes and refused with a sentence when it can't be drawn. A request for work, such as "make a dark theme", goes to Clark rather than switching the scheme. The built-in phrases ("switch to dark mode") keep their meaning even if an installed theme is named "Dark"; a theme like that is chosen from the picker or by the agent.</p>
 
 <h2 id="stop">Stop everything</h2>
 <div class="code" data-code>
