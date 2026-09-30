@@ -88,6 +88,17 @@ pnpm clarkcant ask "hello"
 alias clarkcant="node $PWD/apps/cli/src/main.ts"</code></pre>
 </div>
 
+<h2 id="theme-authoring">Tạo một chủ đề</h2>
+<p>Lệnh tác giả package <code>clark</code> cũng hỗ trợ facet chủ đề chỉ chứa dữ liệu. Chạy từ checkout; không cần tài khoản runtime hay provider:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>node packages/widget-cli/src/cli.ts theme init ./my-theme
+node packages/widget-cli/src/cli.ts theme dev ./my-theme
+node packages/widget-cli/src/cli.ts theme test ./my-theme
+node packages/widget-cli/src/cli.ts theme pack ./my-theme</code></pre>
+</div>
+<p>Đây là <code>clark theme init/dev/test/pack</code> khi workspace bin có trong PATH. Init tạo manifest package tổng quát và chủ đề JSON hợp lệ. Dev lắng nghe tại <code>127.0.0.1:4319</code> (đổi bằng <code>--port</code>) và nạp lại dữ liệu khi sửa, giữ draft xem trước. Dừng bằng Ctrl-C. Theme Lab dùng component sản phẩm cho ví dụ hội thoại, composer, widget, nút/ô nhập, Cài đặt, modal, phê duyệt, lỗi, trạng thái và Orb; thao tác ví dụ không vận hành runtime. Chuyển sáng/tối, kích thước thường/điện thoại/gọn và giảm chuyển động; xem token và recipe đã biên dịch.</p>
+<p>Test kiểm tra tài liệu chủ đề bất kỳ ở cả hai chế độ: tương phản chữ/focus, trạng thái được bảo vệ và đường viền, typography có giới hạn, giảm chuyển động, asset là tệp thường trong gói, manifest và không thực thi mã. Chủ đề không nhận CSS, HTML, script, tài nguyên bên ngoài hay URL font. Symlink trong gói bị từ chối. Kiểm tra bố cục browser và bàn phím vẫn ghi rõ <code>requires-dev-host</code>; kiểm tra token không chứng nhận hành trình browser. Pack dùng định dạng artifact bất biến hiện có, chứa digest tài liệu chủ đề, ghi các kiểm tra chưa thực hiện và từ chối thay đổi nội dung cùng phiên bản. Tăng phiên bản trước khi pack bản sửa.</p>
 <h2 id="connection">Kết nối</h2>
 <div class="table-wrap" tabindex="0"><table>
   <thead><tr><th>Cờ</th><th>Biến môi trường</th><th>Mặc định</th></tr></thead>

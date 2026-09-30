@@ -88,6 +88,17 @@ pnpm clarkcant ask "hello"
 alias clarkcant="node $PWD/apps/cli/src/main.ts"</code></pre>
 </div>
 
+<h2 id="theme-authoring">Build a theme</h2>
+<p>The package author command <code>clark</code> also supports data-only theme facets. Run it from a checkout; no runtime account or provider is needed:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>node packages/widget-cli/src/cli.ts theme init ./my-theme
+node packages/widget-cli/src/cli.ts theme dev ./my-theme
+node packages/widget-cli/src/cli.ts theme test ./my-theme
+node packages/widget-cli/src/cli.ts theme pack ./my-theme</code></pre>
+</div>
+<p>These are <code>clark theme init/dev/test/pack</code> when the workspace bin is on your PATH. Init writes a generalized package manifest and a checked JSON theme. Dev binds to <code>127.0.0.1:4319</code> (<code>--port</code> overrides it) and reloads edited data while retaining the local preview draft. Stop it with Ctrl-C. Theme Lab renders production conversation, composer, widgets, controls, Settings, modal, approval, error, status and Orb examples; its example interactions never operate your runtime. Switch scheme, normal/phone/compact width and reduced motion, and inspect compiled tokens and recipes.</p>
+<p>Test audits arbitrary theme documents in both schemes: text/focus contrast, protected states and edges, bounded typography, reduced motion, contained regular assets, manifest and data-only execution. Themes accept no raw CSS, HTML, scripts, external resources or font URLs. Package symlinks are refused. Browser layout and keyboard checks remain explicitly <code>requires-dev-host</code>; a token audit does not certify a browser journey. Pack uses the existing immutable artifact format, includes theme document digests, records unverified checks and refuses changed bytes under the same version. Increase the version before packing an edit.</p>
 <h2 id="connection">Connection</h2>
 <div class="table-wrap" tabindex="0"><table>
   <thead><tr><th>Flag</th><th>Environment</th><th>Default</th></tr></thead>
