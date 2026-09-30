@@ -225,6 +225,29 @@ for (;;) {
 <pre><code>curl -s -X DELETE "$CLARKCANT_URL/inbox/skipped-versions/package/%40scope%2Fname/1.4.0" \
   -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
 </div>
+<h3 id="notice-action-route">Một route cho mọi thao tác của một thông báo</h3>
+<p><code>POST /inbox/notices/{id}/actions/{action}</code> thực hiện bất kỳ thao tác nào ở trên theo tên. Đây là route mà các nút trong hộp thư của ứng dụng, một yêu cầu gõ hoặc nói, các agent của chính Clark, <a href="mcp.html#tools">MCP tool</a> <code>act_on_notice</code> và <code>clarkcant api</code> đều dùng. Thao tác là một trong <code>mark-read</code>, <code>mark-unread</code>, <code>dismiss</code>, <code>restore</code> (hoàn tác việc bỏ trong năm phút), <code>snooze</code>, <code>unsnooze</code>, <code>suppress</code>, <code>unsuppress</code>, <code>retry</code>, <code>update</code>, <code>skip-version</code> hoặc <code>ask-again</code>. Body là <code>{}</code>; <code>snooze</code> cần <code>{ "until": "&lt;ISO instant&gt;" }</code>, tối đa 30 ngày sau.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>curl -s -X POST "$CLARKCANT_URL/inbox/notices/&lt;noticeId&gt;/actions/dismiss" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{}'</code></pre>
+</div>
+<p>Node đối chiếu thao tác với những gì thông báo đưa ra ngay lúc đó, và không đổi gì khi từ chối:</p>
+<ul>
+  <li><code>400 UNKNOWN_ACTION</code>: tên đó không phải thao tác của thông báo. Tên thao tác được đọc đúng như viết trong đường dẫn và không bao giờ được giải mã, nên một tên mã hoá phần trăm bị từ chối ở đây.</li>
+  <li><code>403 PERSON_ONLY</code>: <code>reconcile-confirmed</code> và <code>reconcile-failed</code>. Đây là câu trả lời của bạn về một hành động không ai thấy kết thúc, và chúng có route riêng (bên dưới).</li>
+  <li><code>403 PERSON_ONLY</code>: <code>update</code> do các agent của Clark, MCP hoặc relay WebSocket yêu cầu. Cài bản cập nhật là quyết định của riêng bạn, bằng nút Cập nhật trên thông báo, nên <code>clarkcant api</code>, relay và <code>call</code> của MCP cũng từ chối route này.</li>
+  <li><code>409 SURFACE_ACTION</code>: <code>open</code>, <code>ask-clark</code>, <code>add-to-context</code> và <code>review-update</code>. Chúng đổi thứ đang hiện trên màn hình của bạn, nên chỉ ứng dụng làm được.</li>
+  <li><code>404 RESOURCE_NOT_FOUND</code>: thông báo không còn nữa.</li>
+  <li><code>409 ACTION_NOT_OFFERED</code>: lúc này thông báo không đưa ra thao tác đó.</li>
+  <li><code>409 ACTION_UNAVAILABLE</code>, kèm lý do <code>unavailable</code>: thông báo có liệt kê thao tác đó, nhưng lúc này chưa làm được.</li>
+  <li><code>409 ACTION_IN_PROGRESS</code>: bản cập nhật của thông báo đó đang được cài.</li>
+  <li><code>409 UNDO_EXPIRED</code>: <code>restore</code> đến sau khi đã bỏ quá năm phút.</li>
+</ul>
+<p>Khi làm được, câu trả lời là <code>{ "noticeId", "action", "outcome": "done" }</code>, cùng những gì thao tác tạo ra: <code>snoozedUntil</code>, <code>workId</code> mới, <code>version</code> hoặc <code>questionId</code> mới. Một bản cập nhật đã cài còn cho biết bao nhiêu quyền nó yêu cầu đang chờ bạn duyệt (<code>pendingCapabilities</code>) và bao nhiêu bị chế độ thực thi của bạn từ chối (<code>deniedCapabilities</code>). <code>update</code> trả nguyên mọi lời từ chối của bước cài đặt. Nếu chế độ thực thi của bạn yêu cầu hỏi trước khi cài, nó trả <code>202</code> với <code>"outcome": "approval-required"</code> và không cài gì; yêu cầu lại cùng phiên bản sẽ dùng lại yêu cầu duyệt vẫn đang chờ. Mỗi lần gọi mà route này xử lý được ghi vào nhật ký của node kèm bề mặt nó đến từ đó. Các route trong bảng vẫn dùng được như trước.</p>
+<p class="note">Các route hộp thư dùng cùng token nhưng chưa có trong <code>/openapi.json</code> và có thể thay đổi.</p>
 
 <h2 id="unknown-effects">Cho biết một hành động đã có hiệu lực hay chưa</h2>
 <p>Khi một lệnh tác động ra ngoài máy của bạn, chẳng hạn một lần push, hết thời gian hoặc bị dừng trước khi báo kết quả, không ai biết nó đã được thực hiện hay chưa. Tác vụ chờ ở trạng thái chưa rõ, không tự làm lại hành động đó, và hộp thư của bạn nhận một thông báo về nó với hai nút: “Đã có hiệu lực” và “Chưa có hiệu lực”. Câu trả lời được ghi lại cùng người trả lời và thời điểm, không thể đổi về sau, và quyết định kết cục của tác vụ: tác vụ chỉ thành công khi hành động đã có hiệu lực và lần chạy đã kiểm tra kết quả của nó.</p>
