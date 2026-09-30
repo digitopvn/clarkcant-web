@@ -239,7 +239,7 @@ for (;;) {
   <li><code>400 UNKNOWN_ACTION</code>: the name is not a notice action. The action is read exactly as written in the path and never decoded, so a percent-encoded name is refused here.</li>
   <li><code>403 PERSON_ONLY</code>: <code>reconcile-confirmed</code> and <code>reconcile-failed</code>. These are your answer about an action nobody saw finish, and they have their own route (below).</li>
   <li><code>403 PERSON_ONLY</code>: <code>update</code> asked for by Clark's agents, by MCP or through the WebSocket relay. Installing an update is your own decision, made with the notice's Update button, so <code>clarkcant api</code>, the relay and MCP's <code>call</code> refuse this route too.</li>
-  <li><code>409 SURFACE_ACTION</code>: <code>open</code>, <code>ask-clark</code>, <code>add-to-context</code> and <code>review-update</code>. They change what your screen shows, so only the app does them.</li>
+  <li><code>409 SURFACE_ACTION</code>: <code>open</code>, <code>ask-clark</code>, <code>add-to-context</code>, <code>review-update</code> and <code>copy-details</code>. They change what your screen shows or holds, so only the app does them.</li>
   <li><code>404 RESOURCE_NOT_FOUND</code>: the notice is gone.</li>
   <li><code>409 ACTION_NOT_OFFERED</code>: the notice does not offer the action now.</li>
   <li><code>409 ACTION_UNAVAILABLE</code>, with the <code>unavailable</code> reason: the notice lists the action, but it can't be taken now.</li>

@@ -239,7 +239,7 @@ for (;;) {
   <li><code>400 UNKNOWN_ACTION</code>: tên đó không phải thao tác của thông báo. Tên thao tác được đọc đúng như viết trong đường dẫn và không bao giờ được giải mã, nên một tên mã hoá phần trăm bị từ chối ở đây.</li>
   <li><code>403 PERSON_ONLY</code>: <code>reconcile-confirmed</code> và <code>reconcile-failed</code>. Đây là câu trả lời của bạn về một hành động không ai thấy kết thúc, và chúng có route riêng (bên dưới).</li>
   <li><code>403 PERSON_ONLY</code>: <code>update</code> do các agent của Clark, MCP hoặc relay WebSocket yêu cầu. Cài bản cập nhật là quyết định của riêng bạn, bằng nút Cập nhật trên thông báo, nên <code>clarkcant api</code>, relay và <code>call</code> của MCP cũng từ chối route này.</li>
-  <li><code>409 SURFACE_ACTION</code>: <code>open</code>, <code>ask-clark</code>, <code>add-to-context</code> và <code>review-update</code>. Chúng đổi thứ đang hiện trên màn hình của bạn, nên chỉ ứng dụng làm được.</li>
+  <li><code>409 SURFACE_ACTION</code>: <code>open</code>, <code>ask-clark</code>, <code>add-to-context</code>, <code>review-update</code> và <code>copy-details</code>. Chúng đổi thứ đang hiện hoặc đang giữ trên màn hình của bạn, nên chỉ ứng dụng làm được.</li>
   <li><code>404 RESOURCE_NOT_FOUND</code>: thông báo không còn nữa.</li>
   <li><code>409 ACTION_NOT_OFFERED</code>: lúc này thông báo không đưa ra thao tác đó.</li>
   <li><code>409 ACTION_UNAVAILABLE</code>, kèm lý do <code>unavailable</code>: thông báo có liệt kê thao tác đó, nhưng lúc này chưa làm được.</li>
