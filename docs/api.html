@@ -288,6 +288,26 @@ for (;;) {
   -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
 </div>
 
+<h2 id="widget-files">Files a widget holds</h2>
+<p>A widget never gets a path. It holds a file as an <code>artifactRef</code>, <code>{ v, artifactId, kind, mimeType, sizeBytes, name, digest? }</code>, and your machine checks the widget's grant again every time the ref is used, so a ref copied elsewhere opens nothing. A grant lasts 24 hours from the pick or the widget's last write. After that a widget still reads a file it made and finished, while a file the person chose has to be chosen again. A file still being written is removed 24 hours after its last write. One file is at most 25 MiB, and one widget keeps at most 128 MiB of your 1 GiB. That share counts the files the widget made and what it attached from them, but not the files you chose for it. A widget can discard only a file it made. Every answer is a ref, bytes, or a refusal whose code says what was wrong. A file's name goes out as both <code>filename</code> and <code>filename*</code> (RFC 6266), so a name with accents downloads as it was written.</p>
+<p>The widget routes start with <code>/conversations/{id}/widgets/{instanceId}/artifacts</code>, written <code>…</code> below.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>GET</td><td><code>/artifacts/{artifactId}</code></td><td>–</td><td>The artifact, with its <code>artifactRef</code>. Someone else's answers <code>404 ARTIFACT_NOT_FOUND</code>.</td></tr>
+    <tr><td>GET</td><td><code>/artifacts/{artifactId}/content</code></td><td>–</td><td>The bytes of a finished file. <code>409 ARTIFACT_NOT_FINALIZED</code> while it is still being written.</td></tr>
+    <tr><td>POST</td><td><code>/artifacts/{artifactId}/export</code></td><td><code>{ suggestedName? }</code></td><td>Save As: the bytes as a download under a file name, never a path. The name keeps the extension of the file's type. The WebSocket relay, MCP and <code>clarkcant api</code> refuse it with <code>403 PERSON_ONLY</code>.</td></tr>
+    <tr><td>POST</td><td><code>…</code></td><td><code>{ mimeType, name? }</code></td><td>A new file this widget may write. <code>201 { artifactRef }</code>.</td></tr>
+    <tr><td>POST</td><td><code>…/pick</code></td><td><code>{ name, mimeType, contentBase64, accept? }</code></td><td>A file the person chose, handed to this widget. Refused with <code>403 PERSON_ONLY</code> on the same relays.</td></tr>
+    <tr><td>GET</td><td><code>…/{artifactId}/content?offset=&amp;length=</code></td><td>–</td><td><code>{ artifactRef, offset, eof, contentBase64 }</code>, at most 262,144 bytes per read.</td></tr>
+    <tr><td>POST</td><td><code>…/{artifactId}/chunks</code></td><td><code>{ offset, contentBase64 }</code></td><td>At most 262,144 bytes, starting where the file ends. <code>409 ARTIFACT_INSTANCE_QUOTA_EXCEEDED</code> once the widget holds 128 MiB.</td></tr>
+    <tr><td>POST</td><td><code>…/{artifactId}/finalize</code></td><td>–</td><td>Fixes the bytes after checking them against the declared type.</td></tr>
+    <tr><td>POST</td><td><code>…/{artifactId}/attach</code></td><td>–</td><td><code>201 { artifactRef, attachmentRef }</code>. The file waits in the composer; the person sends it with their next message. Attaching the same file again returns the same attachment.</td></tr>
+    <tr><td>DELETE</td><td><code>…/{artifactId}</code></td><td>–</td><td>Discards a file this widget made: <code>{ discarded: true, artifactId }</code>. Its bytes go once nothing else uses them. Another widget's file, or one the person chose, answers <code>403 ARTIFACT_NOT_CREATOR</code>.</td></tr>
+  </tbody>
+</table></div>
+<p class="note">These routes are in <code>/openapi.json</code>. Choosing a file and Save As are the person's own actions, so a widget asks the host for them and cannot do them itself. Replacing the file a widget opened is offered only in the desktop app, only with a file of the same type, and the button names both files. In a browser Save As is a download, so the app says “Download started” rather than that the file was saved.</p>
+
 <h2 id="paired-nodes">Paired nodes</h2>
 <p>Two ClarkCant nodes can be paired, for example your laptop and a server. A paired node can tell the other what happened, put a notice in the other owner's inbox, and hand it a task, each only as far as the owner of the receiving node allowed.</p>
 <p class="note">These routes take the same token but are not in <code>/openapi.json</code> yet and may change. Confirming a peer and writing a grant are the owner's decisions: the WebSocket relay, MCP and <code>clarkcant api</code> refuse them with <code>403 PERSON_ONLY</code>. Today nodes talk plain HTTP to each other's gateway, so a node must be reachable over HTTP to pair, and a person checks the other node's key by comparing fingerprints.</p>
