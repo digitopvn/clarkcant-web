@@ -225,7 +225,7 @@ for (;;) {
   -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
 </div>
 <h3 id="notice-action-route">One route for any of a notice's actions</h3>
-<p><code>POST /inbox/notices/{id}/actions/{action}</code> carries out any of these by name, and it is the route the app's inbox buttons, a typed or spoken request, Clark's own agents, the <a href="mcp.html#tools">MCP tool</a> <code>act_on_notice</code> and <code>clarkcant api</code> all use. The action is one of <code>mark-read</code>, <code>mark-unread</code>, <code>dismiss</code>, <code>snooze</code>, <code>unsnooze</code>, <code>suppress</code>, <code>unsuppress</code>, <code>retry</code>, <code>update</code>, <code>skip-version</code> or <code>ask-again</code>. The body is <code>{}</code>; <code>snooze</code> needs <code>{ "until": "&lt;ISO instant&gt;" }</code>, at most 30 days away.</p>
+<p><code>POST /inbox/notices/{id}/actions/{action}</code> carries out any of these by name, and it is the route the app's inbox buttons, a typed or spoken request, Clark's own agents, the <a href="mcp.html#tools">MCP tool</a> <code>act_on_notice</code> and <code>clarkcant api</code> all use. The action is one of <code>mark-read</code>, <code>mark-unread</code>, <code>dismiss</code>, <code>restore</code> (undoes a dismissal within five minutes), <code>snooze</code>, <code>unsnooze</code>, <code>suppress</code>, <code>unsuppress</code>, <code>retry</code>, <code>update</code>, <code>skip-version</code> or <code>ask-again</code>. The body is <code>{}</code>; <code>snooze</code> needs <code>{ "until": "&lt;ISO instant&gt;" }</code>, at most 30 days away.</p>
 <div class="code" data-code>
 <button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
 <pre><code>curl -s -X POST "$CLARKCANT_URL/inbox/notices/&lt;noticeId&gt;/actions/dismiss" \
@@ -235,14 +235,17 @@ for (;;) {
 </div>
 <p>Your node checks the action against what the notice offers at that moment and changes nothing when it refuses:</p>
 <ul>
-  <li><code>400 UNKNOWN_ACTION</code>: the name is not a notice action.</li>
+  <li><code>400 UNKNOWN_ACTION</code>: the name is not a notice action. The action is read exactly as written in the path and never decoded, so a percent-encoded name is refused here.</li>
   <li><code>403 PERSON_ONLY</code>: <code>reconcile-confirmed</code> and <code>reconcile-failed</code>. These are your answer about an action nobody saw finish, and they have their own route (below).</li>
+  <li><code>403 PERSON_ONLY</code>: <code>update</code> asked for by Clark's agents, by MCP or through the WebSocket relay. Installing an update is your own decision, made with the notice's Update button, so <code>clarkcant api</code>, the relay and MCP's <code>call</code> refuse this route too.</li>
   <li><code>409 SURFACE_ACTION</code>: <code>open</code>, <code>ask-clark</code>, <code>add-to-context</code> and <code>review-update</code>. They change what your screen shows, so only the app does them.</li>
   <li><code>404 RESOURCE_NOT_FOUND</code>: the notice is gone.</li>
   <li><code>409 ACTION_NOT_OFFERED</code>: the notice does not offer the action now.</li>
   <li><code>409 ACTION_UNAVAILABLE</code>, with the <code>unavailable</code> reason: the notice lists the action, but it can't be taken now.</li>
+  <li><code>409 ACTION_IN_PROGRESS</code>: that notice's update is already being installed.</li>
+  <li><code>409 UNDO_EXPIRED</code>: <code>restore</code> came more than five minutes after the dismissal.</li>
 </ul>
-<p>When it works, the answer is <code>{ "noticeId", "action", "outcome": "done" }</code>, plus whatever the action produced: <code>snoozedUntil</code>, the new <code>workId</code>, the <code>version</code> or the new <code>questionId</code>. <code>update</code> passes on any refusal from the install unchanged. If your execution mode asks before installing, it answers <code>202</code> with <code>"outcome": "approval-required"</code> and installs nothing. The routes in the table keep working as before.</p>
+<p>When it works, the answer is <code>{ "noticeId", "action", "outcome": "done" }</code>, plus whatever the action produced: <code>snoozedUntil</code>, the new <code>workId</code>, the <code>version</code> or the new <code>questionId</code>. An installed update also says how many of the permissions it asked for wait for your approval (<code>pendingCapabilities</code>) and how many your execution mode refused (<code>deniedCapabilities</code>). <code>update</code> passes on any refusal from the install unchanged. If your execution mode asks before installing, it answers <code>202</code> with <code>"outcome": "approval-required"</code> and installs nothing; asking again for the same version reuses the approval that is still waiting. Each call this route handles is recorded in your node's audit with the surface it came from. The routes in the table keep working as before.</p>
 <p class="note">The inbox routes take the same token but are not in <code>/openapi.json</code> yet and may change.</p>
 
 <h2 id="unknown-effects">Say whether an action took effect</h2>
