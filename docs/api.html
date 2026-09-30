@@ -341,8 +341,21 @@ for (;;) {
   -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
 </div>
 
+<h2 id="conversation-deletion">Delete a conversation</h2>
+<p>Say “delete this conversation”, or ask by voice. Clark uses your current execution policy: it can carry out your explicit instruction, ask you first, or refuse. When policy asks, the conversation shows Keep conversation and Delete conversation. There is no Undo copy: deletion frees retained files and quota.</p>
+<p><code>POST /conversations/{id}/delete</code> accepts <code>{}</code> on the conversation's home node. It is person-only: MCP, the WebSocket relay and <code>clarkcant api</code> refuse this route and its confirmation with <code>403 PERSON_ONLY</code>; agent app intents cannot delete either.</p>
+<ol>
+  <li><code>202</code> returns <code>{ deleted: false, decision: { kind: "needs-confirmation", intent, readBack, confirmationToken } }</code> when policy asks. Nothing is deleted.</li>
+  <li>Answer with <code>POST /app-intents/confirm</code> and <code>{ confirmationToken, decision: "granted" | "denied" }</code>. Denial keeps everything. Approval returns a decision carrying <code>intent.deletionPermit</code>.</li>
+  <li>Send <code>{ deletionPermit }</code> to the original delete route. This permission belongs to that person and conversation, expires after two minutes and works once. Current policy and activity are checked again; a new refusal wins over an earlier approval.</li>
+</ol>
+<p><code>200</code> returns <code>{ deleted: true, conversationId, attachments, artifacts, pendingFiles, readBack }</code>. Conversation-owned rows, attachments, widget files (including finished files never attached), grants and cleanup jobs commit together, with foreign keys enabled. Physical files are removed after commit; bytes still used elsewhere remain. Locked files stay queued for the next start or periodic sweep, and <code>pendingFiles</code> reports how many are waiting.</p>
+<p><code>409</code> returns <code>{ deleted: false, decision: { kind: "refused", say } }</code>, explaining what was kept and what to do next. Unfinished, paused or uncertain tasks, running turns, background work and widget actions still settling block deletion. Finish, cancel or reconcile that work before trying again.</p>
+<p>Saved memory, independent resources, session logs and append-only audit/replication history are kept. After confirmed success, the app starts a fresh conversation. If the network reply is lost, the result is unknown: reload before retrying.</p>
+
 <h2 id="widget-files">Files a widget holds</h2>
 <p>A widget never gets a path. It holds a file as an <code>artifactRef</code>, <code>{ v, artifactId, kind, mimeType, sizeBytes, name, digest? }</code>, and your machine checks the widget's grant again every time the ref is used, so a ref copied elsewhere opens nothing. A grant lasts 24 hours from the pick or the widget's last write. After that a widget still reads a file it made and finished, while a file the person chose has to be chosen again. A file still being written is removed 24 hours after its last write. One file is at most 25 MiB, and one widget keeps at most 128 MiB of your 1 GiB. That share counts the files the widget made and what it attached from them, but not the files you chose for it. A widget can discard only a file it made. Every answer is a ref, bytes, or a refusal whose code says what was wrong. A file's name goes out as both <code>filename</code> and <code>filename*</code> (RFC 6266), so a name with accents downloads as it was written.</p>
+<p><a href="#conversation-deletion">Deleting the conversation</a> releases its widget files and grants, including finished files never attached. Shared bytes stay; physical cleanup waits for the database commit.</p>
 <p>The widget routes start with <code>/conversations/{id}/widgets/{instanceId}/artifacts</code>, written <code>…</code> below.</p>
 <div class="table-wrap" tabindex="0"><table>
   <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Notes</th></tr></thead>
