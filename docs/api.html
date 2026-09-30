@@ -134,6 +134,7 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
 # → { "resolution": …, "taskId": "…", "messageIds": […], "timeline": … }</code></pre>
 </div>
 <p>A typed sentence like “open settings” is resolved as an app intent by the host (<code>appIntent</code> in the response) instead of reaching the model.</p>
+<p>In the composer, a selected file stays with its draft while the upload is checking. Send is disabled during that time; pressing Enter does not submit or clear the message or file. Once the upload finishes, send the message normally. A failed file keeps its stated reason and is not included with the message.</p>
 <p class="note">Approvals are decided by a person on their own surfaces. That route is outside the stable description and is deliberately not exposed as an MCP tool.</p>
 
 <h2 id="references">Point at a skill, a project or a file</h2>
