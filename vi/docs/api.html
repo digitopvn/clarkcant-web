@@ -208,6 +208,9 @@ for (;;) {
   -d '{ "optionIds": ["&lt;optionId&gt;"] }'</code></pre>
 </div>
 
+<h2 id="waiting-approvals">Yêu cầu duyệt do task đang chạy tạo ra</h2>
+<p><code>GET /inbox</code> có các yêu cầu duyệt đang chờ do task đang chạy tạo ra. Quyết định bằng <code>POST /tasks/{taskId}/approvals/{approvalId}/decide</code> với <code>{ "decision": "granted" | "denied", "digest": "&lt;operationDigest shown in the inbox&gt;" }</code>, dùng đúng digest đã hiện trong hộp thư. Duyệt cho phép task chạy lại; <code>redispatched</code> cho biết node đã nhận lượt chạy đó hay chưa. Nếu chưa nhận, chưa có gì chạy và bạn có thể yêu cầu lại. Từ chối hoặc hết hạn sẽ kết thúc task. Đây là quyết định chỉ bạn được thực hiện: MCP, relay yêu cầu qua WebSocket và <code>clarkcant api</code> từ chối route bằng <code>403 PERSON_ONLY</code>, để AI client không tự duyệt thao tác của nó.</p>
+
 <h2 id="notice-actions">Xử lý một thông báo</h2>
 <p><code>GET /inbox</code> liệt kê các thông báo của bạn, và mỗi thông báo mang theo các <code>actions</code> hợp với điều nó nói tới ngay lúc này. Node tính lại chúng mỗi lần đọc, nên một thao tác không còn làm được vẫn được liệt kê, kèm lý do <code>unavailable</code> (<code>conversation-gone</code>, <code>work-gone</code>, <code>package-gone</code> hoặc <code>already-current</code>), thay vì thành một nút bấm vào thì lỗi. Mỗi thao tác đi tới một route riêng:</p>
 <div class="table-wrap" tabindex="0"><table>
@@ -459,7 +462,7 @@ curl -s -X POST "$CLARKCANT_URL/peers/&lt;nodeId&gt;/confirm" \
       <nav aria-label="Footer">
         <a href="../../">Trang chủ</a>
         <a href="https://github.com/digitopvn/clarkcant" rel="noopener">GitHub</a>
-        <a href="https://github.com/digitopvn/clarkcant/blob/main/docs/conformance-traceability.md" rel="noopener">Bảng trạng thái</a>
+        <a href="https://github.com/digitopvn/clarkcant/blob/main/docs/conformance-traceability.md" rel="noopener">Sổ trạng thái (tiếng Anh)</a>
         <a href="https://github.com/digitopvn/clarkcant/blob/main/LICENSE" rel="noopener">Apache-2.0</a>
       </nav>
       <p class="site-footer__note">Xây trên chuẩn mở, để mọi ứng dụng hay công cụ AI đều nói chuyện được với cùng một Clark.</p>

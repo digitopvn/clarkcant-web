@@ -139,7 +139,7 @@ ws.onclose = (event) =&gt; { if (event.code === 4401) console.log("token missing
 <p class="note"><strong>Đừng nhúng token vào trang công khai.</strong> Ai giữ token là điều khiển được Clark của bạn. Chỉ dùng từ máy của bạn hoặc sau lớp đăng nhập của riêng bạn.</p>
 
 <h2 id="other">Các socket khác</h2>
-<p>Node còn phục vụ <code>/voice</code> (phiên giọng nói) và <code>/terminal</code> (thẻ terminal). Chúng thuộc về ứng dụng ClarkCant và không nằm trong giao thức frame này.</p>
+<p id="other-sockets">Node còn phục vụ <code>/voice</code> (phiên giọng nói) và <code>/terminal</code> (<a href="./#terminal">thẻ Terminal</a>). Đây là socket của ứng dụng, không phải giao diện tích hợp công khai hay một phần của giao thức frame này.</p>
     </main>
   </div>
 
@@ -149,7 +149,7 @@ ws.onclose = (event) =&gt; { if (event.code === 4401) console.log("token missing
       <nav aria-label="Footer">
         <a href="../../">Trang chủ</a>
         <a href="https://github.com/digitopvn/clarkcant" rel="noopener">GitHub</a>
-        <a href="https://github.com/digitopvn/clarkcant/blob/main/docs/conformance-traceability.md" rel="noopener">Bảng trạng thái</a>
+        <a href="https://github.com/digitopvn/clarkcant/blob/main/docs/conformance-traceability.md" rel="noopener">Sổ trạng thái (tiếng Anh)</a>
         <a href="https://github.com/digitopvn/clarkcant/blob/main/LICENSE" rel="noopener">Apache-2.0</a>
       </nav>
       <p class="site-footer__note">Xây trên chuẩn mở, để mọi ứng dụng hay công cụ AI đều nói chuyện được với cùng một Clark.</p>
