@@ -246,23 +246,25 @@ for (;;) {
 </div>
 
 <h2 id="widget-files">Tệp mà một widget giữ</h2>
-<p>Widget không bao giờ nhận được đường dẫn. Nó giữ một tệp dưới dạng <code>artifactRef</code>, <code>{ v, artifactId, kind, mimeType, sizeBytes, name, digest? }</code>, và máy của bạn kiểm lại quyền của widget mỗi lần ref được dùng, nên một ref bị chép sang chỗ khác không mở được gì. Một quyền kéo dài 24 giờ, một tệp còn đang ghi dở bị xoá sau 24 giờ, và mỗi tệp tối đa 25 MiB. Mọi câu trả lời là một ref, các byte, hoặc một lời từ chối có mã nói rõ điều gì sai.</p>
+<p>Widget không bao giờ nhận được đường dẫn. Nó giữ một tệp dưới dạng <code>artifactRef</code>, <code>{ v, artifactId, kind, mimeType, sizeBytes, name, digest? }</code>, và máy của bạn kiểm lại quyền của widget mỗi lần ref được dùng, nên một ref bị chép sang chỗ khác không mở được gì. Một quyền kéo dài 24 giờ kể từ lúc chọn tệp hoặc lần ghi gần nhất của widget. Sau đó, widget vẫn đọc được tệp do chính nó tạo và đã hoàn tất, còn tệp người dùng đã chọn thì phải được chọn lại. Một tệp còn đang ghi dở bị xoá 24 giờ sau lần ghi gần nhất. Mỗi tệp tối đa 25 MiB, mỗi widget giữ tối đa 128 MiB trong 1 GiB của bạn, và widget chỉ bỏ được tệp do chính nó tạo. Mọi câu trả lời là một ref, các byte, hoặc một lời từ chối có mã nói rõ điều gì sai. Tên tệp được gửi đi dưới cả hai dạng <code>filename</code> và <code>filename*</code> (RFC 6266), nên một tên có dấu được tải xuống đúng như khi viết.</p>
+<p>Các route của widget bắt đầu bằng <code>/conversations/{id}/widgets/{instanceId}/artifacts</code>, viết tắt là <code>…</code> ở bảng dưới.</p>
 <div class="table-wrap" tabindex="0"><table>
   <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Ghi chú</th></tr></thead>
   <tbody>
     <tr><td>GET</td><td><code>/artifacts/{artifactId}</code></td><td>–</td><td>Artifact, kèm <code>artifactRef</code> của nó. Artifact của người khác trả về <code>404 ARTIFACT_NOT_FOUND</code>.</td></tr>
     <tr><td>GET</td><td><code>/artifacts/{artifactId}/content</code></td><td>–</td><td>Các byte của một tệp đã hoàn tất. <code>409 ARTIFACT_NOT_FINALIZED</code> khi tệp vẫn đang được ghi.</td></tr>
-    <tr><td>POST</td><td><code>/artifacts/{artifactId}/export</code></td><td><code>{ suggestedName? }</code></td><td>Lưu thành: các byte được tải xuống dưới một tên tệp, không bao giờ là một đường dẫn. Relay WebSocket, MCP và <code>clarkcant api</code> từ chối nó với <code>403 PERSON_ONLY</code>.</td></tr>
-    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/artifacts</code></td><td><code>{ mimeType, name? }</code></td><td>Một tệp mới mà widget này được ghi. <code>201 { artifactRef }</code>.</td></tr>
-    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/artifacts/pick</code></td><td><code>{ name, mimeType, contentBase64, accept? }</code></td><td>Một tệp người dùng đã chọn, trao cho widget này. Bị các relay đó từ chối với <code>403 PERSON_ONLY</code>.</td></tr>
-    <tr><td>GET</td><td><code>/conversations/{id}/widgets/{instanceId}/artifacts/{artifactId}/content?offset=&amp;length=</code></td><td>–</td><td><code>{ artifactRef, offset, eof, contentBase64 }</code>, tối đa 262.144 byte mỗi lần đọc.</td></tr>
-    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/artifacts/{artifactId}/chunks</code></td><td><code>{ offset, contentBase64 }</code></td><td>Tối đa 262.144 byte, bắt đầu từ chỗ tệp đang kết thúc.</td></tr>
-    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/artifacts/{artifactId}/finalize</code></td><td>–</td><td>Chốt các byte sau khi kiểm chúng với kiểu đã khai báo.</td></tr>
-    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/artifacts/{artifactId}/attach</code></td><td>–</td><td><code>201 { artifactRef, attachmentRef }</code>. Tệp chờ trong ô soạn tin; người dùng gửi nó cùng tin nhắn tiếp theo.</td></tr>
-    <tr><td>DELETE</td><td><code>/conversations/{id}/widgets/{instanceId}/artifacts/{artifactId}/grant</code></td><td>–</td><td>Thu lại quyền truy cập của widget này.</td></tr>
+    <tr><td>POST</td><td><code>/artifacts/{artifactId}/export</code></td><td><code>{ suggestedName? }</code></td><td>Lưu thành: các byte được tải xuống dưới một tên tệp, không bao giờ là một đường dẫn. Tên giữ phần mở rộng theo kiểu của tệp. Relay WebSocket, MCP và <code>clarkcant api</code> từ chối nó với <code>403 PERSON_ONLY</code>.</td></tr>
+    <tr><td>POST</td><td><code>…</code></td><td><code>{ mimeType, name? }</code></td><td>Một tệp mới mà widget này được ghi. <code>201 { artifactRef }</code>.</td></tr>
+    <tr><td>POST</td><td><code>…/pick</code></td><td><code>{ name, mimeType, contentBase64, accept? }</code></td><td>Một tệp người dùng đã chọn, trao cho widget này. Bị các relay đó từ chối với <code>403 PERSON_ONLY</code>.</td></tr>
+    <tr><td>GET</td><td><code>…/{artifactId}/content?offset=&amp;length=</code></td><td>–</td><td><code>{ artifactRef, offset, eof, contentBase64 }</code>, tối đa 262.144 byte mỗi lần đọc.</td></tr>
+    <tr><td>POST</td><td><code>…/{artifactId}/chunks</code></td><td><code>{ offset, contentBase64 }</code></td><td>Tối đa 262.144 byte, bắt đầu từ chỗ tệp đang kết thúc. <code>409 ARTIFACT_INSTANCE_QUOTA_EXCEEDED</code> khi widget đã giữ 128 MiB.</td></tr>
+    <tr><td>POST</td><td><code>…/{artifactId}/finalize</code></td><td>–</td><td>Chốt các byte sau khi kiểm chúng với kiểu đã khai báo.</td></tr>
+    <tr><td>POST</td><td><code>…/{artifactId}/attach</code></td><td>–</td><td><code>201 { artifactRef, attachmentRef }</code>. Tệp chờ trong ô soạn tin; người dùng gửi nó cùng tin nhắn tiếp theo.</td></tr>
+    <tr><td>DELETE</td><td><code>…/{artifactId}</code></td><td>–</td><td>Bỏ một tệp do widget này tạo: <code>{ discarded: true, artifactId }</code>. Các byte của nó bị xoá khi không còn gì dùng tới. Tệp của widget khác, hoặc tệp người dùng đã chọn, trả về <code>403 ARTIFACT_NOT_CREATOR</code>.</td></tr>
+    <tr><td>DELETE</td><td><code>…/{artifactId}/grant</code></td><td>–</td><td>Thu lại quyền truy cập của widget này.</td></tr>
   </tbody>
 </table></div>
-<p class="note">Các route này có trong <code>/openapi.json</code>. Chọn một tệp và Lưu thành là hành động của chính người dùng, nên widget phải nhờ host làm và không tự làm được. Thay tệp mà widget đã mở chỉ có trong ứng dụng desktop.</p>
+<p class="note">Các route này có trong <code>/openapi.json</code>. Chọn một tệp và Lưu thành là hành động của chính người dùng, nên widget phải nhờ host làm và không tự làm được. Thay tệp mà widget đã mở chỉ có trong ứng dụng desktop. Trên trình duyệt, Lưu thành là một lượt tải xuống, nên ứng dụng báo “Đã bắt đầu tải xuống” chứ không nói tệp đã được lưu.</p>
 
 <h2 id="paired-nodes">Các node đã ghép cặp</h2>
 <p>Hai node ClarkCant có thể được ghép cặp với nhau, ví dụ laptop của bạn và một máy chủ. Một node đã ghép cặp có thể báo cho node kia biết chuyện gì đã xảy ra, đặt một thông báo vào hộp thư của chủ node kia, và giao cho nó một việc, mỗi thứ chỉ trong phạm vi mà chủ của node nhận cho phép.</p>
