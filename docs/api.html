@@ -313,6 +313,24 @@ for (;;) {
 <h3 id="appearance-intents">Change the look by asking</h3>
 <p>You can also change the look by asking Clark, by voice, or through <code>POST /app-intents</code> with <code>appearance.set-theme</code> (<code>themeRef</code>), <code>appearance.set-color-scheme</code> (<code>colorScheme</code>: <code>light</code>, <code>dark</code> or <code>system</code>), <code>appearance.reset</code> (Clark Default, following the system) or <code>appearance.open-theme-gallery</code>. Each one stores your choice the same way the Settings picker does, and none of them asks for confirmation. A theme is checked against this node's themes and refused with a sentence when it can't be drawn. A request for work, such as "make a dark theme", goes to Clark rather than switching the scheme. The built-in phrases ("switch to dark mode") keep their meaning even if an installed theme is named "Dark"; a theme like that is chosen from the picker or by the agent.</p>
 
+<h2 id="install">Install a package</h2>
+<p><code>POST /packages/install</code> installs the package you chose. Only your own app can call it: MCP, the WebSocket relay and <code>clarkcant api</code> get <code>403 PERSON_ONLY</code>, and no agent or model tool can install a package.</p>
+<p>When your execution mode asks before installing, your node installs nothing and answers <code>202</code> with <code>{ "code": "APPROVAL_REQUIRED", "message", "approvalId" }</code>. The install then waits in the inbox: <code>GET /inbox</code> lists it under <code>waiting</code> as <code>kind: "install-approval"</code>, with the package, its version, what it asks for, its risk tier, an <code>operationDigest</code>, <code>requestedAt</code> and <code>expiresAt</code>. It is listed only while the directory still publishes that exact package, version and digest.</p>
+<p>You decide it with <code>POST /packages/approvals/{approvalId}/decision</code> and <code>{ "decision": "granted" | "denied", "digest" }</code>, sending the digest the item showed. This is the same person-only route that decides a package's capability approvals.</p>
+<ul>
+  <li><strong>Denied:</strong> nothing is installed, and your packages stay as they were.</li>
+  <li><strong>Granted:</strong> your node runs the same install, with every install check, bound to that digest.</li>
+</ul>
+<p>A granted decision can still be refused:</p>
+<ul>
+  <li><code>409 DIGEST_MISMATCH</code>: the listing changed after the question. The question stays open, and nothing is installed.</li>
+  <li><code>403 POLICY_REFUSED</code>: your execution mode now forbids installing.</li>
+  <li><code>APPROVAL_FORGED</code>: the digest sent is not the one that was asked about.</li>
+  <li><code>APPROVAL_ALREADY_DECIDED</code>: the question was already decided, so a second press never installs twice.</li>
+  <li><code>APPROVAL_EXPIRED</code>: the ten minutes have passed.</li>
+</ul>
+<p>An install nobody decides expires after ten minutes. Nothing is installed, and a notice says so. Every outcome (asked, installed, denied, expired, refused, failed) is recorded on the <code>package.install-approval</code> event stream. A notice's Update and the marketplace's Install both lead to the waiting item and say where to decide it.</p>
+
 <h2 id="stop">Stop everything</h2>
 <div class="code" data-code>
 <button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>

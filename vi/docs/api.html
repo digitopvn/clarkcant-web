@@ -313,6 +313,24 @@ for (;;) {
 <h3 id="appearance-intents">Đổi diện mạo bằng cách yêu cầu</h3>
 <p>Bạn cũng đổi được diện mạo bằng cách nói với Clark, bằng giọng nói, hoặc qua <code>POST /app-intents</code> với <code>appearance.set-theme</code> (<code>themeRef</code>), <code>appearance.set-color-scheme</code> (<code>colorScheme</code>: <code>light</code>, <code>dark</code> hoặc <code>system</code>), <code>appearance.reset</code> (Clark Default, theo hệ thống) hoặc <code>appearance.open-theme-gallery</code>. Mỗi yêu cầu lưu lựa chọn giống như bộ chọn trong Cài đặt, và không yêu cầu nào hỏi xác nhận. Chủ đề được đối chiếu với các chủ đề của node này và bị từ chối bằng một câu nói rõ khi không vẽ được. Một yêu cầu làm việc, như "make a dark theme", được chuyển cho Clark thay vì đổi chế độ màu. Các câu có sẵn ("switch to dark mode", "chuyển giao diện sang tối") giữ nguyên nghĩa kể cả khi có chủ đề đã cài tên "Dark"; chủ đề như vậy được chọn từ bộ chọn hoặc qua agent.</p>
 
+<h2 id="install">Cài một gói</h2>
+<p><code>POST /packages/install</code> cài gói mà bạn đã chọn. Chỉ ứng dụng của chính bạn gọi được route này: MCP, relay WebSocket và <code>clarkcant api</code> nhận <code>403 PERSON_ONLY</code>, và không agent hay tool nào của mô hình cài được gói.</p>
+<p>Khi chế độ thực thi của bạn yêu cầu hỏi trước khi cài, node của bạn không cài gì và trả <code>202</code> kèm <code>{ "code": "APPROVAL_REQUIRED", "message", "approvalId" }</code>. Lần cài đó chờ bạn trong hộp thư: <code>GET /inbox</code> liệt kê nó trong <code>waiting</code> với <code>kind: "install-approval"</code>, kèm gói, phiên bản, những quyền gói xin, mức rủi ro, <code>operationDigest</code>, <code>requestedAt</code> và <code>expiresAt</code>. Mục này chỉ được liệt kê khi thư mục gói vẫn còn công bố đúng gói, đúng phiên bản và đúng digest đó.</p>
+<p>Bạn quyết định bằng <code>POST /packages/approvals/{approvalId}/decision</code> với <code>{ "decision": "granted" | "denied", "digest" }</code>, gửi đúng digest mà mục đã hiện. Đây cũng là route chỉ bạn dùng được để duyệt quyền của gói.</p>
+<ul>
+  <li><strong>Từ chối:</strong> không cài gì, và các gói của bạn vẫn giữ nguyên.</li>
+  <li><strong>Duyệt:</strong> node của bạn chạy đúng lần cài đó, qua mọi bước kiểm tra khi cài, gắn với digest đó.</li>
+</ul>
+<p>Một quyết định duyệt vẫn có thể bị từ chối:</p>
+<ul>
+  <li><code>409 DIGEST_MISMATCH</code>: trang gói đã đổi sau khi hỏi. Câu hỏi vẫn mở, và chưa cài gì.</li>
+  <li><code>403 POLICY_REFUSED</code>: chế độ thực thi của bạn giờ cấm cài.</li>
+  <li><code>APPROVAL_FORGED</code>: digest gửi lên không phải digest đã hỏi.</li>
+  <li><code>APPROVAL_ALREADY_DECIDED</code>: câu hỏi đã được quyết định rồi, nên bấm lần hai không bao giờ cài hai lần.</li>
+  <li><code>APPROVAL_EXPIRED</code>: đã quá mười phút.</li>
+</ul>
+<p>Lần cài không ai quyết định sẽ hết hạn sau mười phút. Không cài gì, và một thông báo nói rõ điều đó. Mọi kết quả (đã hỏi, đã cài, đã từ chối, hết hạn, bị từ chối, thất bại) được ghi vào luồng sự kiện <code>package.install-approval</code>. Nút Cập nhật trên thông báo và nút Cài trong marketplace đều dẫn tới mục chờ này và nói nơi để quyết định.</p>
+
 <h2 id="stop">Dừng mọi thứ</h2>
 <div class="code" data-code>
 <button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
