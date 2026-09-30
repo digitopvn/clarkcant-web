@@ -208,6 +208,9 @@ for (;;) {
   -d '{ "optionIds": ["&lt;optionId&gt;"] }'</code></pre>
 </div>
 
+<h2 id="waiting-approvals">Approvals raised by a running task</h2>
+<p><code>GET /inbox</code> includes waiting approvals raised by running tasks. Decide one with <code>POST /tasks/{taskId}/approvals/{approvalId}/decide</code> and <code>{ "decision": "granted" | "denied", "digest": "&lt;operationDigest shown in the inbox&gt;" }</code>. Granting authorizes the task to run again; <code>redispatched</code> says whether the node accepted that run. If it did not, nothing has run and you can ask again. Denial or expiry ends the task. This is a person-only decision: MCP, WebSocket request relays and <code>clarkcant api</code> refuse the route with <code>403 PERSON_ONLY</code>, so an AI client cannot approve its own action.</p>
+
 <h2 id="notice-actions">Act on a notice</h2>
 <p><code>GET /inbox</code> lists your notices, and each one carries the <code>actions</code> that fit what it names right now. Your node works them out on every read, so an action that can't be taken any more is still listed, with an <code>unavailable</code> reason (<code>conversation-gone</code>, <code>work-gone</code>, <code>package-gone</code> or <code>already-current</code>), instead of a button that fails. Each action goes to a route of its own:</p>
 <div class="table-wrap" tabindex="0"><table>

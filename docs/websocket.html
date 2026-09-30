@@ -139,7 +139,7 @@ ws.onclose = (event) =&gt; { if (event.code === 4401) console.log("token missing
 <p class="note"><strong>Do not ship the token in a public page.</strong> Whoever holds it can drive your Clark. Use this from your own machine or behind your own login.</p>
 
 <h2 id="other">Other sockets</h2>
-<p>The node also serves <code>/voice</code> (a voice session) and <code>/terminal</code> (terminal cards). They belong to the ClarkCant app and are not part of this frame protocol.</p>
+<p id="other-sockets">The node also serves <code>/voice</code> (a voice session) and <code>/terminal</code> (the <a href="./#terminal">Terminal card</a>). These are app sockets, not public integration surfaces or part of this frame protocol.</p>
     </main>
   </div>
 
