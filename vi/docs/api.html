@@ -397,6 +397,26 @@ api.lifecycle.onDispose(unbind);</code></pre>
 </table></div>
 <p class="note">Các route này có trong <code>/openapi.json</code>. Chọn một tệp và Lưu thành là hành động của chính người dùng, nên widget phải nhờ host làm và không tự làm được. Thay tệp mà widget đã mở chỉ có trong ứng dụng desktop, chỉ bằng một tệp cùng kiểu, và nút này nêu tên cả hai tệp. Trên trình duyệt, Lưu thành là một lượt tải xuống, nên ứng dụng báo “Đã bắt đầu tải xuống” chứ không nói tệp đã được lưu.</p>
 
+<h2 id="widget-jobs">Job chạy lâu của package</h2>
+<p>Một capability của package có công việc kéo dài hơn một lần bấm khai báo <code>"execution": { "kind": "job", "version": 1 }</code> trong tools facet. Một lần bấm vào nó không chờ service: <code>api.actions.invoke</code> trả về một JobRef, là một id <code>job_…</code> không mang nghĩa, và máy của bạn chạy lời gọi ở nền tối đa 30 phút. Widget giữ JobRef trong state của nó, nên vẫn theo dõi được đúng job đó sau khi được mở lại.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>const jobId = await api.actions.invoke("binding_notes_export", { steps: 12, stepMs: 1500 }, invocationId);
+await api.state.update((state) =&gt; ({ ...state, exportJob: jobId }), { exportJob: jobId });
+const stop = api.jobs.subscribe(jobId, (job) =&gt; render(job));</code></pre>
+</div>
+<p><code>api.jobs.get(ref)</code> đọc trạng thái của job (<code>queued</code>, <code>running</code>, <code>waiting</code>, <code>completed</code>, <code>failed</code> hoặc <code>cancelled</code>), tiến độ, output, lỗi và các tệp kết quả. <code>api.jobs.subscribe(ref, handler)</code> kiểm tra mỗi giây, chỉ chuyển đi những thay đổi, và tự dừng khi job kết thúc. <code>api.jobs.cancel(ref)</code> dừng job. Tiến độ chỉ là những gì chính service đã báo, và tệp kết quả đến dưới dạng <code>artifactRef</code>, không bao giờ là đường dẫn.</p>
+<p>JobRef là con trỏ, không phải quyền. Máy của bạn chỉ trả lời widget có chính nút bấm đã khởi động job, trong cùng hội thoại, với cùng phiên bản package và capability; mọi trường hợp khác, kể cả một ref bị chép sang widget khác, đều là <code>404 JOB_NOT_FOUND</code>, giống hệt một job chưa từng tồn tại. Nếu chế độ thực thi của bạn cần hỏi trước khi capability chạy, lần bấm sẽ hiện thẻ phê duyệt của ứng dụng trước, và job chỉ bắt đầu sau khi bạn phê duyệt ở đó.</p>
+<p>Một job chạy tối đa 30 phút; quá thời hạn đó nó kết thúc ở trạng thái thất bại. Trong lúc chạy, nó nằm trong danh sách công việc đang chạy của node (<code>GET /work</code>), và việc dừng nó ở đó (<code>POST /work/{id}/cancel</code>), Dừng khẩn cấp và việc tắt node đều huỷ nó. Nút Dừng của hội thoại kết thúc câu trả lời, không kết thúc một job đã chạy, giống như các công việc nền khác. Vì service có thể đã làm xong việc trước khi nhận được lệnh huỷ, job sẽ báo rằng nó “có thể đã hoàn tất tác động” thay vì khẳng định không có gì xảy ra. Job vẫn đang chạy khi node khởi động lại được đánh dấu thất bại và không bao giờ tự chạy lại. Khi job kết thúc, hội thoại và hộp thư đều báo, nêu tối đa ba tệp kết quả. Hội thoại còn job đang chạy thì không xoá được cho tới khi job kết thúc hoặc bị huỷ.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Ghi chú</th></tr></thead>
+  <tbody>
+    <tr><td>GET</td><td><code>/conversations/{id}/widgets/{instanceId}/jobs/{jobId}</code></td><td>–</td><td><code>{ job: { jobId, status, progress?, resultRefs, output?, error?, createdAt, startedAt?, endedAt? } }</code>.</td></tr>
+    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/jobs/{jobId}</code></td><td>–</td><td>Huỷ job: <code>202 { accepted, jobId }</code>. Job đã kết thúc trả về <code>409 JOB_NOT_RUNNING</code> và vẫn đọc được.</td></tr>
+  </tbody>
+</table></div>
+<p class="note">Các route này có trong <code>/openapi.json</code>. Node không chạy được job trả về <code>503 JOB_UNAVAILABLE</code>. <code>POST /stop</code> đếm các job đã huỷ trong <code>stopped.jobs</code>.</p>
+
 <h2 id="paired-nodes">Các node đã ghép cặp</h2>
 <p>Hai node ClarkCant có thể được ghép cặp với nhau, ví dụ laptop của bạn và một máy chủ. Một node đã ghép cặp có thể báo cho node kia biết chuyện gì đã xảy ra, đặt một thông báo vào hộp thư của chủ node kia, và giao cho nó một việc, mỗi thứ chỉ trong phạm vi mà chủ của node nhận cho phép.</p>
 <p class="note">Các route này dùng cùng token nhưng chưa có trong <code>/openapi.json</code> và có thể thay đổi. Xác nhận một peer và viết một grant là quyết định của chủ node: relay WebSocket, MCP và <code>clarkcant api</code> từ chối chúng với <code>403 PERSON_ONLY</code>. Hiện nay các node nói chuyện với gateway của nhau bằng HTTP thuần, nên một node phải truy cập được qua HTTP mới ghép cặp được, và con người kiểm khoá của node kia bằng cách so fingerprint.</p>
