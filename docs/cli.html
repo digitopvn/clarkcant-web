@@ -88,6 +88,18 @@ pnpm clarkcant ask "hello"
 alias clarkcant="node $PWD/apps/cli/src/main.ts"</code></pre>
 </div>
 
+<h2 id="widget-authoring">Develop a widget</h2>
+<p>The package author command <code>clark</code> supports the widget lifecycle from a checkout. It needs no runtime account or provider:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>node packages/widget-cli/src/cli.ts widget init ./my-widget --template form
+node packages/widget-cli/src/cli.ts widget dev ./my-widget
+node packages/widget-cli/src/cli.ts widget test ./my-widget
+node packages/widget-cli/src/cli.ts widget pack ./my-widget</code></pre>
+</div>
+<p>These are <code>clark widget init/dev/test/pack</code> when the workspace bin is on your PATH. Dev runs the widget in the isolated browser host on loopback. Its service panel simulates each declared capability as loading, ready, blocked or unhealthy, and lets you test offline, degraded and restart recovery with package fixtures. It does not start a real service or call a provider.</p>
+<p>The semantic inspector shows the normalized proposal the runtime keeps, what was truncated or dropped, the delta, the context note and <code>inspect_ui</code> output. The composition panel sends declared events through their shared validators and records widget-emitted events. Invalid or undeclared events are refused; simulation stays local and cannot invoke capabilities. <code>clark widget test</code> checks fixture semantic limits and declared event schemas before <code>pack</code> builds the artifact and digest.</p>
+
 <h2 id="theme-authoring">Build a theme</h2>
 <p>The package author command <code>clark</code> also supports data-only theme facets. Run it from a checkout; no runtime account or provider is needed:</p>
 <div class="code" data-code>

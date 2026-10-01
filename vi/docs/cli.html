@@ -88,6 +88,18 @@ pnpm clarkcant ask "hello"
 alias clarkcant="node $PWD/apps/cli/src/main.ts"</code></pre>
 </div>
 
+<h2 id="widget-authoring">Phát triển widget</h2>
+<p>Lệnh tác giả package <code>clark</code> hỗ trợ toàn bộ vòng đời widget từ một bản checkout. Không cần tài khoản runtime hay provider:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>node packages/widget-cli/src/cli.ts widget init ./my-widget --template form
+node packages/widget-cli/src/cli.ts widget dev ./my-widget
+node packages/widget-cli/src/cli.ts widget test ./my-widget
+node packages/widget-cli/src/cli.ts widget pack ./my-widget</code></pre>
+</div>
+<p>Đây là <code>clark widget init/dev/test/pack</code> khi workspace bin có trong PATH. Dev chạy widget trong browser host cô lập, chỉ lắng nghe loopback. Bảng dịch vụ mô phỏng từng capability đã khai báo ở trạng thái loading, ready, blocked hoặc unhealthy; bạn có thể thử offline, degraded và phục hồi sau khi khởi động lại bằng fixture của package. Công cụ không chạy dịch vụ thật hay gọi provider.</p>
+<p>Bảng ngữ nghĩa hiển thị đề xuất đã chuẩn hoá mà runtime lưu, phần bị cắt hoặc loại bỏ, delta, ghi chú ngữ cảnh và kết quả <code>inspect_ui</code>. Bảng composition gửi các event đã khai báo qua cùng bộ kiểm tra hợp đồng và ghi lại event do widget phát ra. Event sai hoặc chưa khai báo sẽ bị từ chối; mô phỏng chỉ chạy cục bộ và không thể gọi capability. <code>clark widget test</code> kiểm tra giới hạn semantic của fixture và schema event đã khai báo trước khi <code>pack</code> tạo artifact cùng digest.</p>
+
 <h2 id="theme-authoring">Tạo một chủ đề</h2>
 <p>Lệnh tác giả package <code>clark</code> cũng hỗ trợ facet chủ đề chỉ chứa dữ liệu. Chạy từ checkout; không cần tài khoản runtime hay provider:</p>
 <div class="code" data-code>
