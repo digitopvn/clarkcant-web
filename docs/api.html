@@ -397,6 +397,26 @@ api.lifecycle.onDispose(unbind);</code></pre>
 </table></div>
 <p class="note">These routes are in <code>/openapi.json</code>. Choosing a file and Save As are the person's own actions, so a widget asks the host for them and cannot do them itself. Replacing the file a widget opened is offered only in the desktop app, only with a file of the same type, and the button names both files. In a browser Save As is a download, so the app says “Download started” rather than that the file was saved.</p>
 
+<h2 id="widget-jobs">Long-running package jobs</h2>
+<p>A package capability whose work takes longer than one press declares <code>"execution": { "kind": "job", "version": 1 }</code> in its tools facet. A press on it does not wait for the service: <code>api.actions.invoke</code> resolves with a JobRef, an opaque <code>job_…</code> id, and your machine runs the call in the background for up to 30 minutes. The widget keeps the JobRef in its state, so it can follow the same job after it is opened again.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>const jobId = await api.actions.invoke("binding_notes_export", { steps: 12, stepMs: 1500 }, invocationId);
+await api.state.update((state) =&gt; ({ ...state, exportJob: jobId }), { exportJob: jobId });
+const stop = api.jobs.subscribe(jobId, (job) =&gt; render(job));</code></pre>
+</div>
+<p><code>api.jobs.get(ref)</code> reads the job's status (<code>queued</code>, <code>running</code>, <code>waiting</code>, <code>completed</code>, <code>failed</code> or <code>cancelled</code>), progress, output, error and result files. <code>api.jobs.subscribe(ref, handler)</code> checks once a second, passes on only changes, and stops by itself when the job ends. <code>api.jobs.cancel(ref)</code> stops it. Progress is only what the service itself reported, and result files arrive as <code>artifactRef</code>s, never paths.</p>
+<p>A JobRef is a pointer, not a permission. Your machine answers only the widget whose own button started the job, in the same conversation, under the same package version and capability; anything else, including a ref copied into another widget, is <code>404 JOB_NOT_FOUND</code>, the same as a job that never existed. If your execution mode asks before the capability runs, the press shows the app's approval card first, and the job starts only after you approve it there.</p>
+<p>Stop, emergency Stop and shutting the node down cancel running jobs. Because the service may have finished its work before it heard the cancel, the job says it “may already have completed its effect” rather than claiming nothing happened. A job still running when your node restarts is marked failed and is never run again by itself. When a job ends, the conversation and the inbox say so, naming up to three result files. A conversation with a running job cannot be deleted until the job ends or is cancelled.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>GET</td><td><code>/conversations/{id}/widgets/{instanceId}/jobs/{jobId}</code></td><td>–</td><td><code>{ job: { jobId, status, progress?, resultRefs, output?, error?, createdAt, startedAt?, endedAt? } }</code>.</td></tr>
+    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/jobs/{jobId}</code></td><td>–</td><td>Cancels the job: <code>202 { accepted, jobId }</code>. A job that already ended answers <code>409 JOB_NOT_RUNNING</code> and stays readable.</td></tr>
+  </tbody>
+</table></div>
+<p class="note">These routes are in <code>/openapi.json</code>. A node that cannot run jobs answers <code>503 JOB_UNAVAILABLE</code>. <code>POST /stop</code> counts the jobs it cancelled in <code>stopped.jobs</code>.</p>
+
 <h2 id="paired-nodes">Paired nodes</h2>
 <p>Two ClarkCant nodes can be paired, for example your laptop and a server. A paired node can tell the other what happened, put a notice in the other owner's inbox, and hand it a task, each only as far as the owner of the receiving node allowed.</p>
 <p class="note">These routes take the same token but are not in <code>/openapi.json</code> yet and may change. Confirming a peer and writing a grant are the owner's decisions: the WebSocket relay, MCP and <code>clarkcant api</code> refuse them with <code>403 PERSON_ONLY</code>. Today nodes talk plain HTTP to each other's gateway, so a node must be reachable over HTTP to pair, and a person checks the other node's key by comparing fingerprints.</p>
