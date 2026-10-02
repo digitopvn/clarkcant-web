@@ -478,9 +478,45 @@ const stop = api.jobs.subscribe(jobId, (job) =&gt; render(job));</code></pre>
   <li><strong>Node tự gắn khoá.</strong> Node thêm header đã khai báo từ khoá bạn lưu cho consumer <code>package:&lt;id&gt;</code>; header cùng tên do service đặt bị bỏ. Header cookie, proxy, chuyển tiếp và framing bị loại bỏ. Mỗi request gửi tối đa 1 MiB, nhận tối đa 2 MiB và kéo dài tối đa 30 giây.</li>
   <li><strong>Che khoá bí mật.</strong> Khoá được thay bằng <code>[redacted]</code> trong header và body trả về, ở dạng nguyên bản và ở các dạng JSON-escaped, URL-encoded, base64 và base64url. Đây là lớp bảo vệ cố gắng hết mức trước provider lặp lại khoá, không phải bảo đảm: khoá trả về ở dạng khác, như bị tách, băm hoặc mã hoá, vẫn tới được service.</li>
 </ul>
-<p>Lời từ chối là lỗi JSON-RPC từ <code>-32010</code> tới <code>-32018</code>: origin chưa khai báo, không có lệnh gọi đang chạy, khoá không dùng được, quá lớn, không kết nối được provider, đã dừng, phương thức không được các lệnh gọi đang chạy cho phép, quá nhiều request, và origin mà node này không gọi tới. Mỗi request được ghi kiểm toán là <code>egress</code> với gói, phương thức, origin, tên khoá, trạng thái và kết quả, không bao giờ ghi đường dẫn, body hay giá trị. Phương thức này chỉ nằm giữa node và các service của chính nó; nó không có trên <code>POST /mcp</code>.</p>
+<p>Lời từ chối là lỗi JSON-RPC từ <code>-32010</code> tới <code>-32018</code>: origin chưa khai báo, không có lệnh gọi đang chạy, khoá không dùng được, quá lớn, không kết nối được provider, đã dừng, phương thức không được các lệnh gọi đang chạy cho phép, quá nhiều request, và origin mà node này không gọi tới. <code>-32019</code> là request bị từ chối vì một lệnh gọi đang chạy giữ một tệp bạn đã chọn (<a href="#service-files">tệp mà một service đọc</a>). Mỗi request được ghi kiểm toán là <code>egress</code> với gói, phương thức, origin, tên khoá, trạng thái và kết quả, không bao giờ ghi đường dẫn, body hay giá trị. Phương thức này chỉ nằm giữa node và các service của chính nó; nó không có trên <code>POST /mcp</code>.</p>
 <p>Cho tới khi khoá đã khai báo được lưu, các capability của gói được xem là chưa đăng nhập (<code>authenticated: false</code>) kèm lý do, ví dụ “the secret LOOKUP_API_KEY has not been provided on this node”. Một lần bấm, agent và giọng nói đều bị từ chối với <code>409 CAPABILITY_NOT_AUTHENTICATED</code>. Đây là trạng thái “cần đăng nhập” của một service; trạng thái vòng đời widget <code>needs_auth</code> không được đặt cho nó. Lưu khoá cho <code>package:&lt;id&gt;</code> bằng <code>POST /credentials</code> sẽ đăng nhập service mà không cần khởi động lại, và xoá khoá sẽ đăng xuất nó. Khoá lưu cho consumer <code>command:</code> không được dùng cho egress, nên hãy lưu một khoá riêng cho gói.</p>
 <p class="note">Chưa có mạng qua proxy cho service cần socket thô. Cho container một mạng sẽ làm yếu một mặc định cách ly.</p>
+
+<h2 id="service-files">Tệp mà một service đọc</h2>
+<p>Một service có thể làm việc trên tệp mà một widget giữ mà không bao giờ nhận đường dẫn hay handle tới tệp đó. Một capability nêu các trường đối số mang id artifact trong facet tools của nó:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>{ "tool": "render_audio", "ref": "com.example.media.render@1", "effectCategory": "read",
+  "execution": { "kind": "job", "version": 1 },
+  "inputArtifacts": { "version": 1, "fields": ["source"] } }</code></pre>
+</div>
+<p>Một lệnh gọi nêu tệp ở một trong các trường đó chỉ có thể đến từ nút của chính instance widget đang giữ tệp. Cùng lệnh gọi đó từ Clark, giọng nói, MCP hay CLI bị từ chối với <code>403 ARTIFACT_INPUT_REFUSED</code>, vì không ai trong số đó giữ quyền của widget. Trước khi gửi lệnh gọi, node của bạn kiểm tra từng tệp được nêu:</p>
+<ul>
+  <li>instance widget đã bấm giữ quyền trên tệp, và tệp đã hoàn tất, không còn đang được ghi (<code>403 ARTIFACT_INPUT_REFUSED</code>);</li>
+  <li>tệp thuộc về hội thoại nơi lần bấm diễn ra, và hội thoại đó vẫn còn giữ widget (<code>403 ARTIFACT_INPUT_REFUSED</code>);</li>
+  <li>node xác định được resource profile đã cấp cho gói; gói không có profile nào bị từ chối thay vì chạy mà không có giới hạn (<code>403 ARTIFACT_INPUT_REFUSED</code>);</li>
+  <li>tệp nằm trong giới hạn đầu vào của profile đó (<code>413 ARTIFACT_INPUT_TOO_LARGE</code>).</li>
+</ul>
+<p>Lệnh gọi bị từ chối không gửi gì tới service. Khi chính sách thực thi của bạn hỏi trước một lệnh gọi như vậy, thẻ phê duyệt nêu widget và nút mà lần bấm đến từ đó, và điều bạn phê duyệt bao gồm cả hai. Phê duyệt sẽ chạy lệnh gọi như chính lần bấm đó: node kiểm tra lại rằng hội thoại vẫn giữ widget và nút vẫn gọi capability này, rồi thực hiện mọi bước kiểm tra ở trên. Thẻ có widget đã mất bị từ chối với <code>APPROVAL_STALE</code>.</p>
+<p>Các giới hạn đến từ <a href="#package-resources">profile đã được cấp</a>, không bao giờ từ manifest. Manifest nêu trường, không nêu kích thước, nên không thể nâng giới hạn nào:</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Profile</th><th>Tệp đầu vào</th><th>Độ dài media</th></tr></thead>
+  <tbody>
+    <tr><td><code>interactive-light</code></td><td>8 MiB</td><td>2 phút</td></tr>
+    <tr><td><code>interactive-heavy</code></td><td>16 MiB</td><td>10 phút</td></tr>
+    <tr><td><code>media-workstation</code></td><td>25 MiB</td><td>2 giờ</td></tr>
+    <tr><td><code>background-compute</code></td><td>25 MiB</td><td>1 giờ</td></tr>
+  </tbody>
+</table></div>
+<p>Node của bạn cung cấp việc đọc tệp trong <code>initialize</code> của MCP dưới dạng <code>capabilities.experimental["clarkcant/artifacts"]</code>: <code>{ version: 1, methods: ["clarkcant/artifacts.read"], chunkBytes: 262144, maxInputBytes, maxMediaSeconds, maxResultBytes }</code>. Trong lúc lệnh gọi diễn ra, và chỉ khi đó, service gửi <code>clarkcant/artifacts.read</code> với <code>{ version: 1, artifactId, offset, length }</code> và nhận lại <code>{ artifactId, offset, bytes, eof, sizeBytes, mimeType }</code>, với byte ở dạng base64:</p>
+<ul>
+  <li><strong>Đọc có giới hạn.</strong> Mỗi lần đọc trả về tối đa 256 KiB; một khoảng dài hơn bị từ chối với <code>-32602</code>. Node kiểm tra lại quyền ở mỗi lần đọc.</li>
+  <li><strong>Chỉ các tệp được nêu, chỉ trong lệnh gọi.</strong> Một id mà lệnh gọi không nêu trong trường đã khai báo bị từ chối với <code>-32020</code>, và một lần đọc có câu trả lời đến sau khi lệnh gọi đã kết thúc cũng vậy; byte của nó không được trao đi.</li>
+  <li><strong>Các lời từ chối khác.</strong> Quyền đã bị thu hồi, tệp không còn, hoặc lệnh gọi đã dùng hết ngân sách đọc là <code>-32021</code>. Ngân sách là bốn lượt qua các tệp của lệnh gọi, với tối đa bốn lần đọc cho mỗi phần 256 KiB, cộng thêm 16 lần đọc cho header và thao tác dò vị trí.</li>
+  <li><strong>Độ dài media do service tự kiểm soát.</strong> Chỉ service đọc được độ dài của một đoạn, nên nó nên từ chối đoạn dài hơn <code>maxMediaSeconds</code> trước khi làm bất cứ việc gì. <code>maxResultBytes</code> là tệp lớn nhất một kết quả được mang, khoảng 2,95 MiB. Tệp được trả về chỉ trở thành artifact khi job hoàn tất, nên job bị huỷ hay thất bại không để lại tệp nào được trình bày như đã xong.</li>
+  <li><strong>Không có egress khi đang giữ tệp.</strong> Trong lúc một lệnh gọi giữ tệp đang chạy, <a href="#package-egress"><code>clarkcant/egress.fetch</code></a> của service bị từ chối với <code>-32019</code>, trừ khi lệnh gọi đó được quyết định là <code>external-write</code>, <code>communication</code>, <code>destructive</code> hoặc <code>financial</code>, những tác động mà bước kiểm tra rủi ro của chính sách thực thi hỏi tới. Một <code>GET</code> có thể mang byte trong URL của nó, nên lệnh gọi <code>read</code> hay <code>local-write</code> đang giữ tệp không có egress nào cho tới khi nó kết thúc. Capability vừa đọc tệp của bạn vừa gửi nó tới một provider phải khai báo <code>external-write</code> trở lên, để chính sách của bạn quyết định việc gửi đó.</li>
+</ul>
+<p class="note"><a href="cli.html#reference-media-render">Công cụ dựng media mẫu</a> được xây trên cơ chế này: widget của nó chọn một đoạn WAV, và service của nó đọc đoạn đó theo từng phần dưới profile <code>background-compute</code>.</p>
 
 <h2 id="browser-tokens">Token trình duyệt cho widget (<code>tokens@1</code>)</h2>
 <p>Một số SDK của nhà cung cấp chỉ chạy được với token trong trình duyệt. UI facet của gói có thể khai báo các provider mà widget cần token, tối đa 8 provider, mỗi provider 16 scope:</p>
