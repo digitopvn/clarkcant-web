@@ -418,6 +418,11 @@ const stop = api.jobs.subscribe(jobId, (job) =&gt; render(job));</code></pre>
 </table></div>
 <p class="note">Các route này có trong <code>/openapi.json</code>. Node không chạy được job trả về <code>503 JOB_UNAVAILABLE</code>. <code>POST /stop</code> đếm các job đã huỷ trong <code>stopped.jobs</code>.</p>
 
+<h2 id="widget-press-context">Lần bấm đọc điều widget đang hiển thị</h2>
+<p>Một widget cách ly mô tả điều nó đang hiển thị bằng <code>api.semantic.publish(summary, selectedIds, values?)</code>. Ứng dụng gửi lần publish cuối của một loạt sau 250 ms, và gửi các lần publish lần lượt từng cái, đúng thứ tự. Một binding <code>agent</code> có thể đọc mô tả đó khi được bấm, qua <code>contextRefs</code> của nó (<code>selection</code>, <code>widget</code>), nên một lần bấm ngay sau một lần publish không được chạy dựa trên mô tả trước đó.</p>
+<p>Trước khi chạy lần bấm như vậy, ứng dụng gửi lần publish còn đang chờ ổn định và chờ đến khi máy của bạn đã giữ mô tả được publish trước lần bấm, hoặc một mô tả mới hơn. Các lần publish sau lần bấm vẫn được gửi như thường nhưng không được chờ, nên một widget publish liên tục không thể giữ lần bấm lại. Các lần bấm khác chỉ chờ lần publish còn đang chờ ổn định, hoặc lần mà máy của bạn vừa từ chối.</p>
+<p>Thời gian chờ có giới hạn: mỗi lần gửi bị bỏ sau 5 giây và toàn bộ việc chờ sau 8 giây. Mô tả bị máy của bạn từ chối được gửi lại một lần. Nếu vẫn hỏng, hoặc hết thời gian chờ, <code>api.actions.invoke</code> bị từ chối kèm câu của ứng dụng (“Chưa gửi kịp cho Clark điều widget đang hiển thị, nên hành động này chưa chạy…”) và lần bấm không chạy. Không có gì trong widget bị thay đổi, và người dùng có thể bấm lại. Hãy hiện lời từ chối đó ở chỗ người dùng đã bấm. <a href="cli.html#reference-text-editor">Trình soạn thảo văn bản mẫu</a> làm đúng như vậy cho nút viết lại của nó.</p>
+
 <h2 id="package-resources">Tài nguyên mà một gói được chạy cùng</h2>
 <p>Các service của một gói chạy trong một container trên máy của bạn. Gói xin kích thước cho container đó bằng cách nêu tên một resource profile trong manifest, không bao giờ bằng con số:</p>
 <div class="code" data-code>
