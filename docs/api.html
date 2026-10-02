@@ -359,6 +359,31 @@ api.lifecycle.onDispose(unbind);</code></pre>
   -d '{ "value": { "origin": "https://tiles.example.com", "template": "/styles/basic/{z}/{x}/{y}.png", "attribution": "© Example contributors", "maxZoom": 17, "credential": { "secret": "tiles-key", "header": "x-api-key" } } }'</code></pre>
 </div>
 
+<h2 id="media-policy">Media content policy</h2>
+<p>The audio player can play a file from the web, but the page never fetches it: your node does, once, when the player is placed (see <a href="./#audio-document">Audio player and document preview</a>). There is no HTTP route for it; the policy is the node's start-up setting <code>CC_MEDIA_ORIGINS</code>, a comma-separated list of bare <code>https</code> origins, at most 32, empty by default. A list with any entry that is not one is ignored as a whole, the node allows nothing, and it says why once at startup.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>CC_MEDIA_ORIGINS=https://media.example.com,https://cdn.example.org</code></pre>
+</div>
+<p>Each refusal ends with <code>(media policy rule: &lt;rule&gt;)</code> in the message the model reads:</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Rule</th><th>What is refused</th></tr></thead>
+  <tbody>
+    <tr><td><code>origin-not-allowed</code></td><td>An origin not listed in <code>CC_MEDIA_ORIGINS</code>.</td></tr>
+    <tr><td><code>https-only</code></td><td>Any scheme but <code>https</code>, in the URL or in a redirect.</td></tr>
+    <tr><td><code>credentials-in-url</code></td><td>A user name or password in the URL or in a redirect.</td></tr>
+    <tr><td><code>private-address</code></td><td>A name that resolves to a loopback, private, link-local or other reserved address, checked on the address actually dialled. An origin written as an address or as <code>localhost</code> names that address and is allowed.</td></tr>
+    <tr><td><code>redirect-off-origin</code>, <code>too-many-redirects</code></td><td>A redirect to another origin, or more than 3.</td></tr>
+    <tr><td><code>type-not-allowed</code></td><td>A declared type other than <code>audio/mpeg</code>, <code>audio/ogg</code>, <code>audio/wav</code> or <code>audio/webm</code>.</td></tr>
+    <tr><td><code>type-mismatch</code></td><td>Bytes that are not the declared type, checked by sniffing the container, or a compressed transfer.</td></tr>
+    <tr><td><code>too-large</code></td><td>More than 25 MiB, from the declared length or as soon as the body crosses it.</td></tr>
+    <tr><td><code>too-long</code>, <code>duration-unknown</code></td><td>More than an hour, or a container that does not state its length.</td></tr>
+    <tr><td><code>timeout</code>, <code>not-found</code>, <code>fetch-failed</code></td><td>A fetch longer than 30 s, a missing file, or one that could not be reached.</td></tr>
+    <tr><td><code>source</code></td><td>Not exactly one source, or an id the node does not issue.</td></tr>
+  </tbody>
+</table></div>
+<p>The request carries no cookie, authorization or referrer and uses a fresh connection. A file that passes is stored as an artifact of the conversation against your storage quota, and the page plays it from the node; its content policy stays <code>media-src 'self' blob:</code>. The same checks of type, size and length apply to an audio file the person already holds.</p>
+
 <h2 id="install">Install a package</h2>
 <p><code>POST /packages/install</code> installs the package you chose. Only your own app can call it: MCP, the WebSocket relay and <code>clarkcant api</code> get <code>403 PERSON_ONLY</code>, and no agent or model tool can install a package.</p>
 <p>When your execution mode asks before installing, your node installs nothing and answers <code>202</code> with <code>{ "code": "APPROVAL_REQUIRED", "message", "approvalId" }</code>. The install then waits in the inbox: <code>GET /inbox</code> lists it under <code>waiting</code> as <code>kind: "install-approval"</code>, with the package, its version, what it asks for, its risk tier, an <code>operationDigest</code>, <code>requestedAt</code> and <code>expiresAt</code>. It is listed only while the directory still publishes that exact package, version and digest.</p>

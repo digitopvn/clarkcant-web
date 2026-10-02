@@ -359,6 +359,31 @@ api.lifecycle.onDispose(unbind);</code></pre>
   -d '{ "value": { "origin": "https://tiles.example.com", "template": "/styles/basic/{z}/{x}/{y}.png", "attribution": "© Example contributors", "maxZoom": 17, "credential": { "secret": "tiles-key", "header": "x-api-key" } } }'</code></pre>
 </div>
 
+<h2 id="media-policy">Chính sách nội dung media</h2>
+<p>Trình phát âm thanh có thể phát một tệp từ web, nhưng trang không bao giờ tự tải nó: node của bạn tải nó, một lần, khi trình phát được đặt (xem <a href="./#audio-document">Trình phát âm thanh và xem trước tài liệu</a>). Không có route HTTP nào cho việc này; chính sách là thiết lập khởi động <code>CC_MEDIA_ORIGINS</code> của node, một danh sách các origin <code>https</code> trần phân tách bằng dấu phẩy, tối đa 32 mục, mặc định để trống. Một danh sách có bất kỳ mục nào không đúng dạng đó sẽ bị bỏ qua toàn bộ, node không cho phép gì, và nói lý do một lần khi khởi động.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>CC_MEDIA_ORIGINS=https://media.example.com,https://cdn.example.org</code></pre>
+</div>
+<p>Mỗi lần từ chối kết thúc bằng <code>(media policy rule: &lt;rule&gt;)</code> trong thông báo mà mô hình đọc:</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Quy tắc</th><th>Điều bị từ chối</th></tr></thead>
+  <tbody>
+    <tr><td><code>origin-not-allowed</code></td><td>Một origin không có trong <code>CC_MEDIA_ORIGINS</code>.</td></tr>
+    <tr><td><code>https-only</code></td><td>Bất kỳ scheme nào ngoài <code>https</code>, trong URL hoặc trong một lần chuyển hướng.</td></tr>
+    <tr><td><code>credentials-in-url</code></td><td>Tên người dùng hoặc mật khẩu trong URL hoặc trong một lần chuyển hướng.</td></tr>
+    <tr><td><code>private-address</code></td><td>Một tên phân giải ra địa chỉ loopback, riêng tư, link-local hoặc địa chỉ dành riêng khác, được kiểm tra trên đúng địa chỉ thực sự được kết nối. Một origin được viết dưới dạng địa chỉ hoặc <code>localhost</code> chỉ đúng địa chỉ đó và được cho phép.</td></tr>
+    <tr><td><code>redirect-off-origin</code>, <code>too-many-redirects</code></td><td>Chuyển hướng sang origin khác, hoặc quá 3 lần.</td></tr>
+    <tr><td><code>type-not-allowed</code></td><td>Loại khai báo không phải <code>audio/mpeg</code>, <code>audio/ogg</code>, <code>audio/wav</code> hay <code>audio/webm</code>.</td></tr>
+    <tr><td><code>type-mismatch</code></td><td>Các byte không đúng loại đã khai báo, được kiểm tra bằng cách nhận dạng định dạng chứa, hoặc truyền tải có nén.</td></tr>
+    <tr><td><code>too-large</code></td><td>Lớn hơn 25 MiB, dựa trên độ dài khai báo hoặc ngay khi phần thân vượt quá mức đó.</td></tr>
+    <tr><td><code>too-long</code>, <code>duration-unknown</code></td><td>Dài hơn một giờ, hoặc định dạng chứa không nêu độ dài của nó.</td></tr>
+    <tr><td><code>timeout</code>, <code>not-found</code>, <code>fetch-failed</code></td><td>Lần tải lâu hơn 30 giây, tệp không tồn tại, hoặc không kết nối được.</td></tr>
+    <tr><td><code>source</code></td><td>Không có đúng một nguồn, hoặc một ID mà node không cấp.</td></tr>
+  </tbody>
+</table></div>
+<p>Yêu cầu không mang cookie, thông tin xác thực hay referrer và dùng một kết nối mới. Tệp vượt qua kiểm tra được lưu thành artifact của cuộc hội thoại, tính vào hạn mức lưu trữ của bạn, và trang phát nó từ node; chính sách nội dung của trang vẫn là <code>media-src 'self' blob:</code>. Các bước kiểm tra loại tệp, kích thước và độ dài cũng áp dụng cho tệp âm thanh mà người dùng đã có sẵn.</p>
+
 <h2 id="install">Cài một gói</h2>
 <p><code>POST /packages/install</code> cài gói mà bạn đã chọn. Chỉ ứng dụng của chính bạn gọi được route này: MCP, relay WebSocket và <code>clarkcant api</code> nhận <code>403 PERSON_ONLY</code>, và không agent hay tool nào của mô hình cài được gói.</p>
 <p>Khi chế độ thực thi của bạn yêu cầu hỏi trước khi cài, node của bạn không cài gì và trả <code>202</code> kèm <code>{ "code": "APPROVAL_REQUIRED", "message", "approvalId" }</code>. Lần cài đó chờ bạn trong hộp thư: <code>GET /inbox</code> liệt kê nó trong <code>waiting</code> với <code>kind: "install-approval"</code>, kèm gói, phiên bản, những quyền gói xin, mức rủi ro, <code>operationDigest</code>, <code>requestedAt</code> và <code>expiresAt</code>. Mục này chỉ được liệt kê khi thư mục gói vẫn còn công bố đúng gói, đúng phiên bản và đúng digest đó.</p>
