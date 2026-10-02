@@ -356,6 +356,7 @@ api.lifecycle.onDispose(unbind);</code></pre>
   <li><code>APPROVAL_EXPIRED</code>: the ten minutes have passed.</li>
 </ul>
 <p>An install nobody decides expires after ten minutes. Nothing is installed, and a notice says so. Every outcome (asked, installed, denied, expired, refused, failed) is recorded on the <code>package.install-approval</code> event stream. A notice's Update and the marketplace's Install both lead to the waiting item and say where to decide it.</p>
+<p>Before you install, the directory card and the install question list what the package reaches outside its sandbox (see <a href="#package-reach">what a package reaches</a>). An artifact whose manifest declares other reach than its listing showed is refused with <code>409 DECLARED_REACH_MISMATCH</code> before anything is recorded.</p>
 
 <h2 id="stop">Stop everything</h2>
 <div class="code" data-code>
@@ -416,6 +417,94 @@ const stop = api.jobs.subscribe(jobId, (job) =&gt; render(job));</code></pre>
   </tbody>
 </table></div>
 <p class="note">These routes are in <code>/openapi.json</code>. A node that cannot run jobs answers <code>503 JOB_UNAVAILABLE</code>. <code>POST /stop</code> counts the jobs it cancelled in <code>stopped.jobs</code>.</p>
+
+<h2 id="package-resources">What a package runs with</h2>
+<p>A package's services run in a container on your machine. The package asks for the size of that container by naming a resource profile in its manifest, never with numbers:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>"resources": { "version": 1, "profile": "interactive-heavy" }</code></pre>
+</div>
+<p>Your node owns the table and decides what it grants. A package that names no profile runs as <code>interactive-light</code>, the envelope every service ran in before profiles existed, value for value, so an existing package runs exactly as it did.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Profile</th><th>Memory / CPUs / processes / <code>/tmp</code></th><th>Per call</th><th>Per job</th><th>Jobs at once</th><th>Out of view</th></tr></thead>
+  <tbody>
+    <tr><td><code>interactive-light</code> (default)</td><td>256 MiB / 1 / 128 / 16 MiB</td><td>60 s</td><td>30 min</td><td>4</td><td>Unmounted</td></tr>
+    <tr><td><code>interactive-heavy</code></td><td>1 GiB / 2 / 256 / 64 MiB</td><td>120 s</td><td>30 min</td><td>2</td><td>Unmounted</td></tr>
+    <tr><td><code>media-workstation</code></td><td>4 GiB / 4 / 512 / 512 MiB</td><td>300 s</td><td>2 h</td><td>1</td><td>May keep playing</td></tr>
+    <tr><td><code>background-compute</code></td><td>2 GiB / 2 / 256 / 256 MiB</td><td>60 s</td><td>4 h</td><td>2</td><td>Unmounted</td></tr>
+  </tbody>
+</table></div>
+<p>Every profile runs with no network (<code>--network none</code>) and a <code>noexec</code> <code>/tmp</code>. The profile sets the container's memory, CPUs, process limit and <code>/tmp</code> size, the call and job deadlines, and how many jobs run at once. Services and jobs keep running whether or not their widget is on screen. The largest file a service returns stays the attachment maximum, so it can always be attached to a conversation.</p>
+<p>Your node decides in this order:</p>
+<ol>
+  <li>A GPU is never granted: the node does not pass one through to a container.</li>
+  <li><code>interactive-light</code> is always granted.</li>
+  <li>A refusal from your execution policy wins.</li>
+  <li>A profile is not granted when it needs more CPUs than the container engine reports, or more than half its memory. Under Docker Desktop that is the capacity of its Linux VM.</li>
+</ol>
+<p>A profile that cannot be granted is never swapped for a smaller one. The package is degraded instead: its services do not start, and each capability shows the reason. Settings → Extensions shows the profile beside each installed package: its bounds when granted, or “Asked for …, not granted: …” when not.</p>
+<p class="note">Rootless Podman without delegated cgroup v2 controllers accepts memory and CPU limits and does not apply them. Your node still grants the profile there, and package details say “the container engine does not enforce memory and CPU limits here” rather than claiming the limits.</p>
+<p>A widget unmounts when it scrolls out of view. Only a widget whose package was granted <code>media-workstation</code> gets a “Keep playing when scrolled away” toggle in the app's own frame. While it is on, the widget stays mounted and the app says “<em>title</em> is still running out of view”. It is off for every new mount, the widget cannot turn it on itself, and Stop still ends it.</p>
+
+<h2 id="package-egress">How a service reaches its provider</h2>
+<p>A service's container stays on <code>--network none</code>, and the service never holds a provider key. Its package's tools facet declares the keys it needs and the origins it may reach, each with a purpose:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>"egress": {
+  "version": 1,
+  "secrets": [{ "name": "LOOKUP_API_KEY", "purpose": "Signs the lookups in with the provider." }],
+  "origins": [{
+    "origin": "https://api.example.com",
+    "purpose": "Looks up the words you ask about.",
+    "credential": { "secret": "LOOKUP_API_KEY", "header": "authorization", "scheme": "bearer" }
+  }]
+}</code></pre>
+</div>
+<p>Your node is the MCP client of each package service, over stdio. For a service that declares <code>egress</code>, the node's <code>initialize</code> offers <code>capabilities.experimental["clarkcant/egress"]</code> with <code>version: 1</code>. The service then sends the node the request <code>clarkcant/egress.fetch</code> with <code>{ version: 1, url, method?, headers?, body? }</code> on the same connection, and the node makes the HTTP request itself:</p>
+<ul>
+  <li><strong>Declared origins only.</strong> The origin must match a declared one exactly, and a URL with credentials in it is refused. No redirect is followed, so a key never travels to another origin.</li>
+  <li><strong>No loopback or private origins.</strong> <code>localhost</code>, loopback, private and link-local addresses (IPv4, IPv6 and IPv4-mapped forms) are refused even when declared, unless you start the node with <code>CC_EGRESS_ALLOW_PRIVATE_NETWORK=1</code>. It is off by default, and no manifest field turns it on. The check reads the URL's host; it does not check what a public name resolves to.</li>
+  <li><strong>Only while a call is running.</strong> A request is answered only while a call from your node to that service is in flight. Requests stop when the last call ends, is cancelled, or the service is stopped.</li>
+  <li><strong>Read-only calls can only read.</strong> While every call in flight was decided as <code>read</code> or <code>local-write</code>, a request may only use <code>GET</code> or <code>HEAD</code>. Any other method needs a call decided as <code>external-write</code>, <code>destructive</code>, <code>financial</code> or <code>communication</code>, which your execution policy's risk check asks about.</li>
+  <li><strong>Rate limited.</strong> Each running service gets a burst of 30 requests, refilled at 10 a second.</li>
+  <li><strong>The key is added by the node.</strong> The node adds the declared header from the key you stored for the consumer <code>package:&lt;id&gt;</code>; a header of that name set by the service is dropped. Cookie, proxy, forwarding and framing headers are stripped. A request sends at most 1 MiB, receives at most 2 MiB and takes at most 30 s.</li>
+  <li><strong>Secret redaction.</strong> The key is replaced with <code>[redacted]</code> in the headers and body that come back, as sent and in its JSON-escaped, URL-encoded, base64 and base64url forms. This is a best-effort guard against a provider that echoes the key, not a guarantee: a key returned in another form, such as split, hashed or encrypted, reaches the service.</li>
+</ul>
+<p>A refusal is a JSON-RPC error from <code>-32010</code> to <code>-32018</code>: origin not declared, no call in flight, key unavailable, too large, provider unreachable, stopped, method not allowed by the calls in flight, too many requests, and an origin this node does not reach. Each request is audited as <code>egress</code> with the package, method, origin, key name, status and outcome, never a path, a body or a value. This method is between your node and its own services; it is not on <code>POST /mcp</code>.</p>
+<p>Until the declared key is stored, the package's capabilities read as not signed in (<code>authenticated: false</code>) with the reason, for example “the secret LOOKUP_API_KEY has not been provided on this node”. A press, the agent and voice are refused with <code>409 CAPABILITY_NOT_AUTHENTICATED</code>. This is the “needs auth” state of a service; the widget lifecycle state <code>needs_auth</code> is not set for it. Storing the key for <code>package:&lt;id&gt;</code> with <code>POST /credentials</code> signs the service in without a restart, and removing the key signs it out. A key stored for a <code>command:</code> consumer is not used for egress, so store a separate one for the package.</p>
+<p class="note">A proxied network for services that need raw sockets is not built. Giving a container a network would weaken an isolation default.</p>
+
+<h2 id="browser-tokens">Browser tokens for a widget (<code>tokens@1</code>)</h2>
+<p>Some vendor SDKs only work with a token in the browser. A package's UI facet may declare the providers its widget needs one from, at most 8 providers with 16 scopes each:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>"browserTokens": {
+  "version": 1,
+  "providers": [{ "provider": "example.maps", "scopes": ["tiles:read"], "purpose": "Draws the map tiles." }]
+}</code></pre>
+</div>
+<p>Only a widget whose package declared browser tokens is offered <code>tokens@1</code> in <code>init.extensions</code>:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>if (api.tokens.available()) {
+  const token = await api.tokens.request({ provider: "example.maps", scopes: ["tiles:read"], ttlSeconds: 300 });
+  sdk.setAccessToken(token.value); // { provider, value, scopes, expiresAt }
+}</code></pre>
+</div>
+<p>A token is bound to one widget instance and one session. Each mount of the widget is its own session, a random id the app keeps, and the token is revoked when that mount goes, when the package is uninstalled, rolled back or updated to new code, and when the node stops, where the provider supports revoking. A token is issued only when the provider and every scope are declared, your node has an adapter for that provider that mints a scoped token for those scopes, and the lifetime is 30–3600 s and within the provider's own maximum (900 s when none is asked). A request is refused, never narrowed. A session holds at most 8 tokens; a ninth withdraws the oldest.</p>
+<p>Your node keeps only the provider's token id, and audits the provider, instance and outcome as <code>browser-token</code>, never the value. The SDK and the app both refuse, with <code>TOKEN_NOT_ALLOWED</code>, a state update, semantic publish, action, file write or external link that carries an issued token as it was issued. This guard is best effort: the widget's code holds the value, so what bounds a leak is that the token is scoped, short-lived and revoked when the widget goes.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/browser-tokens</code></td><td><code>{ session, request: { provider, scopes, ttlSeconds? } }</code></td><td><code>{ token: { provider, token, scopes, expiresAt } }</code>. Person-only: the app asks on behalf of the widget it mounted.</td></tr>
+    <tr><td>DELETE</td><td><code>/conversations/{id}/widgets/{instanceId}/browser-tokens/{session}</code></td><td>–</td><td><code>{ ended: true, revoked }</code>. A later request for that session is <code>409 TOKEN_SESSION_ENDED</code>.</td></tr>
+  </tbody>
+</table></div>
+<p class="note">These routes are in <code>/openapi.json</code>. Refusals: <code>403 TOKEN_PROVIDER_NOT_DECLARED</code> or <code>TOKEN_SCOPE_NOT_DECLARED</code>, <code>409 TOKEN_PACKAGE_NOT_ACTIVE</code> or <code>TOKEN_SESSION_ENDED</code>, <code>422 TOKEN_PROVIDER_UNSCOPED</code>, <code>TOKEN_SCOPE_NOT_SUPPORTED</code> or <code>TOKEN_TTL_TOO_LONG</code>, <code>502 TOKEN_ISSUE_FAILED</code> and <code>503 TOKEN_PROVIDER_UNAVAILABLE</code>. ClarkCant ships no provider adapter yet, so today every request is <code>503 TOKEN_PROVIDER_UNAVAILABLE</code>.</p>
+
+<h2 id="package-reach">What a package reaches, shown before install</h2>
+<p>A directory entry states the package's reach in <code>declaredReach</code>, <code>{ origins, secrets, browserTokens }</code>; a listing without it says the package reaches nothing. Before anything is granted, the directory card in the conversation, the install question in the inbox, and package details in Settings → Extensions list each origin with its purpose, each key by name with its purpose (never a value), and each browser-token provider with its scopes and purpose.</p>
+<p>An artifact whose manifest declares a different reach than its listing showed is refused with <code>409 DECLARED_REACH_MISMATCH</code> before anything is recorded, so what you agreed to is what you get. The resource profile is shown in package details once the package is installed. An update notice does not list the reach yet.</p>
 
 <h2 id="paired-nodes">Paired nodes</h2>
 <p>Two ClarkCant nodes can be paired, for example your laptop and a server. A paired node can tell the other what happened, put a notice in the other owner's inbox, and hand it a task, each only as far as the owner of the receiving node allowed.</p>

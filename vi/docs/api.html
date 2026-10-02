@@ -356,6 +356,7 @@ api.lifecycle.onDispose(unbind);</code></pre>
   <li><code>APPROVAL_EXPIRED</code>: đã quá mười phút.</li>
 </ul>
 <p>Lần cài không ai quyết định sẽ hết hạn sau mười phút. Không cài gì, và một thông báo nói rõ điều đó. Mọi kết quả (đã hỏi, đã cài, đã từ chối, hết hạn, bị từ chối, thất bại) được ghi vào luồng sự kiện <code>package.install-approval</code>. Nút Cập nhật trên thông báo và nút Cài trong marketplace đều dẫn tới mục chờ này và nói nơi để quyết định.</p>
+<p>Trước khi bạn cài, thẻ thư mục gói và câu hỏi cài đặt liệt kê những gì gói chạm tới bên ngoài vùng cách ly (xem <a href="#package-reach">những gì một gói chạm tới</a>). Một artifact có manifest khai báo phạm vi khác với những gì trang gói đã hiện sẽ bị từ chối với <code>409 DECLARED_REACH_MISMATCH</code> trước khi có bất cứ điều gì được ghi lại.</p>
 
 <h2 id="stop">Dừng mọi thứ</h2>
 <div class="code" data-code>
@@ -416,6 +417,94 @@ const stop = api.jobs.subscribe(jobId, (job) =&gt; render(job));</code></pre>
   </tbody>
 </table></div>
 <p class="note">Các route này có trong <code>/openapi.json</code>. Node không chạy được job trả về <code>503 JOB_UNAVAILABLE</code>. <code>POST /stop</code> đếm các job đã huỷ trong <code>stopped.jobs</code>.</p>
+
+<h2 id="package-resources">Tài nguyên mà một gói được chạy cùng</h2>
+<p>Các service của một gói chạy trong một container trên máy của bạn. Gói xin kích thước cho container đó bằng cách nêu tên một resource profile trong manifest, không bao giờ bằng con số:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>"resources": { "version": 1, "profile": "interactive-heavy" }</code></pre>
+</div>
+<p>Node của bạn giữ bảng profile và quyết định cấp gì. Gói không nêu profile nào chạy với <code>interactive-light</code>, đúng giới hạn mà mọi service đã chạy trước khi có profile, từng giá trị một, nên một gói có sẵn vẫn chạy y như trước.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Profile</th><th>Bộ nhớ / CPU / tiến trình / <code>/tmp</code></th><th>Mỗi lệnh gọi</th><th>Mỗi job</th><th>Số job cùng lúc</th><th>Khi ra khỏi màn hình</th></tr></thead>
+  <tbody>
+    <tr><td><code>interactive-light</code> (mặc định)</td><td>256 MiB / 1 / 128 / 16 MiB</td><td>60 giây</td><td>30 phút</td><td>4</td><td>Bị gỡ khỏi màn hình</td></tr>
+    <tr><td><code>interactive-heavy</code></td><td>1 GiB / 2 / 256 / 64 MiB</td><td>120 giây</td><td>30 phút</td><td>2</td><td>Bị gỡ khỏi màn hình</td></tr>
+    <tr><td><code>media-workstation</code></td><td>4 GiB / 4 / 512 / 512 MiB</td><td>300 giây</td><td>2 giờ</td><td>1</td><td>Có thể tiếp tục phát</td></tr>
+    <tr><td><code>background-compute</code></td><td>2 GiB / 2 / 256 / 256 MiB</td><td>60 giây</td><td>4 giờ</td><td>2</td><td>Bị gỡ khỏi màn hình</td></tr>
+  </tbody>
+</table></div>
+<p>Mọi profile đều chạy không có mạng (<code>--network none</code>) và với <code>/tmp</code> ở chế độ <code>noexec</code>. Profile đặt bộ nhớ, số CPU, giới hạn tiến trình và kích thước <code>/tmp</code> của container, thời hạn của lệnh gọi và của job, và số job chạy cùng lúc. Service và job vẫn chạy dù widget của chúng có đang hiện trên màn hình hay không. Tệp lớn nhất mà một service trả về vẫn bằng giới hạn tệp đính kèm, nên luôn đính kèm được vào hội thoại.</p>
+<p>Node của bạn quyết định theo thứ tự sau:</p>
+<ol>
+  <li>Không bao giờ cấp GPU: node không chuyển GPU vào container.</li>
+  <li><code>interactive-light</code> luôn được cấp.</li>
+  <li>Lời từ chối của policy thực thi luôn thắng.</li>
+  <li>Một profile không được cấp khi nó cần nhiều CPU hơn số container engine báo, hoặc hơn một nửa bộ nhớ của engine. Với Docker Desktop, đó là dung lượng của máy ảo Linux của nó.</li>
+</ol>
+<p>Một profile không cấp được thì không bao giờ bị đổi sang profile nhỏ hơn. Thay vào đó gói ở trạng thái suy giảm: các service của nó không khởi động, và mỗi capability hiện lý do. Cài đặt → Tiện ích hiện profile bên cạnh mỗi gói đã cài: các giới hạn khi được cấp, hoặc “Đã xin … nhưng không được cấp: …” khi không.</p>
+<p class="note">Podman rootless không được uỷ quyền các controller cgroup v2 chấp nhận giới hạn bộ nhớ và CPU nhưng không áp dụng chúng. Node của bạn vẫn cấp profile ở đó, và chi tiết gói ghi rằng container engine ở đây không áp giới hạn bộ nhớ và CPU, thay vì khẳng định có giới hạn.</p>
+<p>Một widget bị gỡ khỏi màn hình khi nó cuộn ra ngoài vùng nhìn thấy. Chỉ widget có gói được cấp <code>media-workstation</code> mới có nút bật “Tiếp tục phát khi cuộn đi” trong khung do chính ứng dụng vẽ. Khi bật, widget vẫn được giữ lại và ứng dụng báo “<em>tên widget</em> vẫn đang chạy ngoài màn hình”. Nút này tắt với mỗi lần widget được gắn mới, widget không tự bật được, và nút Dừng vẫn kết thúc nó.</p>
+
+<h2 id="package-egress">Cách một service gọi tới provider của nó</h2>
+<p>Container của service vẫn ở <code>--network none</code>, và service không bao giờ giữ khoá của provider. Tools facet của gói khai báo các khoá nó cần và các origin nó được gọi tới, mỗi thứ kèm mục đích:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>"egress": {
+  "version": 1,
+  "secrets": [{ "name": "LOOKUP_API_KEY", "purpose": "Signs the lookups in with the provider." }],
+  "origins": [{
+    "origin": "https://api.example.com",
+    "purpose": "Looks up the words you ask about.",
+    "credential": { "secret": "LOOKUP_API_KEY", "header": "authorization", "scheme": "bearer" }
+  }]
+}</code></pre>
+</div>
+<p>Node của bạn là MCP client của từng service của gói, qua stdio. Với service có khai báo <code>egress</code>, lệnh <code>initialize</code> của node đề nghị <code>capabilities.experimental["clarkcant/egress"]</code> với <code>version: 1</code>. Khi đó service gửi cho node request <code>clarkcant/egress.fetch</code> với <code>{ version: 1, url, method?, headers?, body? }</code> trên cùng kết nối, và chính node thực hiện request HTTP:</p>
+<ul>
+  <li><strong>Chỉ tới origin đã khai báo.</strong> Origin phải khớp chính xác một origin đã khai báo, và URL có chứa thông tin đăng nhập bị từ chối. Node không đi theo chuyển hướng, nên khoá không bao giờ bị gửi sang origin khác.</li>
+  <li><strong>Không tới origin loopback hay mạng riêng.</strong> <code>localhost</code>, địa chỉ loopback, mạng riêng và link-local (IPv4, IPv6 và dạng IPv4-mapped) bị từ chối kể cả khi đã khai báo, trừ khi bạn khởi động node với <code>CC_EGRESS_ALLOW_PRIVATE_NETWORK=1</code>. Mặc định tắt, và không trường manifest nào bật được nó. Việc kiểm tra đọc host của URL; nó không kiểm tra một tên miền công khai phân giải ra địa chỉ nào.</li>
+  <li><strong>Chỉ khi có lệnh gọi đang chạy.</strong> Request chỉ được trả lời khi node của bạn đang có một lệnh gọi tới service đó. Request dừng khi lệnh gọi cuối cùng kết thúc, bị huỷ, hoặc service bị dừng.</li>
+  <li><strong>Lệnh gọi chỉ đọc thì chỉ được đọc.</strong> Khi mọi lệnh gọi đang chạy đều được quyết định là <code>read</code> hoặc <code>local-write</code>, request chỉ được dùng <code>GET</code> hoặc <code>HEAD</code>. Phương thức khác cần một lệnh gọi được quyết định là <code>external-write</code>, <code>destructive</code>, <code>financial</code> hoặc <code>communication</code>, loại mà bước kiểm tra rủi ro của policy thực thi sẽ hỏi.</li>
+  <li><strong>Giới hạn tần suất.</strong> Mỗi service đang chạy được dồn tối đa 30 request, nạp lại 10 request mỗi giây.</li>
+  <li><strong>Node tự gắn khoá.</strong> Node thêm header đã khai báo từ khoá bạn lưu cho consumer <code>package:&lt;id&gt;</code>; header cùng tên do service đặt bị bỏ. Header cookie, proxy, chuyển tiếp và framing bị loại bỏ. Mỗi request gửi tối đa 1 MiB, nhận tối đa 2 MiB và kéo dài tối đa 30 giây.</li>
+  <li><strong>Che khoá bí mật.</strong> Khoá được thay bằng <code>[redacted]</code> trong header và body trả về, ở dạng nguyên bản và ở các dạng JSON-escaped, URL-encoded, base64 và base64url. Đây là lớp bảo vệ cố gắng hết mức trước provider lặp lại khoá, không phải bảo đảm: khoá trả về ở dạng khác, như bị tách, băm hoặc mã hoá, vẫn tới được service.</li>
+</ul>
+<p>Lời từ chối là lỗi JSON-RPC từ <code>-32010</code> tới <code>-32018</code>: origin chưa khai báo, không có lệnh gọi đang chạy, khoá không dùng được, quá lớn, không kết nối được provider, đã dừng, phương thức không được các lệnh gọi đang chạy cho phép, quá nhiều request, và origin mà node này không gọi tới. Mỗi request được ghi kiểm toán là <code>egress</code> với gói, phương thức, origin, tên khoá, trạng thái và kết quả, không bao giờ ghi đường dẫn, body hay giá trị. Phương thức này chỉ nằm giữa node và các service của chính nó; nó không có trên <code>POST /mcp</code>.</p>
+<p>Cho tới khi khoá đã khai báo được lưu, các capability của gói được xem là chưa đăng nhập (<code>authenticated: false</code>) kèm lý do, ví dụ “the secret LOOKUP_API_KEY has not been provided on this node”. Một lần bấm, agent và giọng nói đều bị từ chối với <code>409 CAPABILITY_NOT_AUTHENTICATED</code>. Đây là trạng thái “cần đăng nhập” của một service; trạng thái vòng đời widget <code>needs_auth</code> không được đặt cho nó. Lưu khoá cho <code>package:&lt;id&gt;</code> bằng <code>POST /credentials</code> sẽ đăng nhập service mà không cần khởi động lại, và xoá khoá sẽ đăng xuất nó. Khoá lưu cho consumer <code>command:</code> không được dùng cho egress, nên hãy lưu một khoá riêng cho gói.</p>
+<p class="note">Chưa có mạng qua proxy cho service cần socket thô. Cho container một mạng sẽ làm yếu một mặc định cách ly.</p>
+
+<h2 id="browser-tokens">Token trình duyệt cho widget (<code>tokens@1</code>)</h2>
+<p>Một số SDK của nhà cung cấp chỉ chạy được với token trong trình duyệt. UI facet của gói có thể khai báo các provider mà widget cần token, tối đa 8 provider, mỗi provider 16 scope:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>"browserTokens": {
+  "version": 1,
+  "providers": [{ "provider": "example.maps", "scopes": ["tiles:read"], "purpose": "Draws the map tiles." }]
+}</code></pre>
+</div>
+<p>Chỉ widget có gói đã khai báo token trình duyệt mới được đề nghị <code>tokens@1</code> trong <code>init.extensions</code>:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>if (api.tokens.available()) {
+  const token = await api.tokens.request({ provider: "example.maps", scopes: ["tiles:read"], ttlSeconds: 300 });
+  sdk.setAccessToken(token.value); // { provider, value, scopes, expiresAt }
+}</code></pre>
+</div>
+<p>Token gắn với một instance widget và một phiên. Mỗi lần widget được gắn là một phiên riêng, một id ngẫu nhiên do ứng dụng giữ, và token bị thu hồi khi lần gắn đó kết thúc, khi gói bị gỡ, quay về bản cũ hoặc cập nhật sang mã mới, và khi node dừng, ở nơi provider hỗ trợ thu hồi. Token chỉ được cấp khi provider và mọi scope đều đã khai báo, node của bạn có adapter cho provider đó có thể tạo token giới hạn theo đúng các scope ấy, và thời hạn nằm trong 30–3600 giây và trong mức tối đa của chính provider (900 giây khi không xin thời hạn). Request bị từ chối chứ không bao giờ bị thu hẹp. Mỗi phiên giữ tối đa 8 token; token thứ chín thu hồi token cũ nhất.</p>
+<p>Node của bạn chỉ giữ id token của provider, và ghi kiểm toán provider, instance và kết quả là <code>browser-token</code>, không bao giờ ghi giá trị. SDK và ứng dụng đều từ chối, với <code>TOKEN_NOT_ALLOWED</code>, một lần cập nhật state, semantic publish, action, ghi tệp hoặc liên kết ngoài có chứa token đúng như khi được cấp. Lớp bảo vệ này chỉ cố gắng hết mức: mã của widget giữ giá trị token, nên điều giới hạn rò rỉ là token có scope hẹp, thời hạn ngắn và bị thu hồi khi widget đóng.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Ghi chú</th></tr></thead>
+  <tbody>
+    <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/browser-tokens</code></td><td><code>{ session, request: { provider, scopes, ttlSeconds? } }</code></td><td><code>{ token: { provider, token, scopes, expiresAt } }</code>. Chỉ người dùng: ứng dụng xin thay cho widget mà nó đã gắn.</td></tr>
+    <tr><td>DELETE</td><td><code>/conversations/{id}/widgets/{instanceId}/browser-tokens/{session}</code></td><td>–</td><td><code>{ ended: true, revoked }</code>. Request sau đó cho phiên này là <code>409 TOKEN_SESSION_ENDED</code>.</td></tr>
+  </tbody>
+</table></div>
+<p class="note">Các route này có trong <code>/openapi.json</code>. Lời từ chối: <code>403 TOKEN_PROVIDER_NOT_DECLARED</code> hoặc <code>TOKEN_SCOPE_NOT_DECLARED</code>, <code>409 TOKEN_PACKAGE_NOT_ACTIVE</code> hoặc <code>TOKEN_SESSION_ENDED</code>, <code>422 TOKEN_PROVIDER_UNSCOPED</code>, <code>TOKEN_SCOPE_NOT_SUPPORTED</code> hoặc <code>TOKEN_TTL_TOO_LONG</code>, <code>502 TOKEN_ISSUE_FAILED</code> và <code>503 TOKEN_PROVIDER_UNAVAILABLE</code>. ClarkCant chưa kèm adapter provider nào, nên hiện mọi request đều là <code>503 TOKEN_PROVIDER_UNAVAILABLE</code>.</p>
+
+<h2 id="package-reach">Những gì một gói chạm tới, hiện trước khi cài</h2>
+<p>Một mục trong thư mục gói nêu phạm vi của gói trong <code>declaredReach</code>, <code>{ origins, secrets, browserTokens }</code>; trang gói không có trường này nghĩa là gói không chạm tới gì. Trước khi cấp bất cứ quyền gì, thẻ thư mục gói trong hội thoại, câu hỏi cài đặt trong hộp thư và chi tiết gói trong Cài đặt → Tiện ích liệt kê từng origin kèm mục đích, từng khoá theo tên kèm mục đích (không bao giờ hiện giá trị), và từng provider token trình duyệt kèm scope và mục đích.</p>
+<p>Một artifact có manifest khai báo phạm vi khác với những gì trang gói đã hiện sẽ bị từ chối với <code>409 DECLARED_REACH_MISMATCH</code> trước khi có bất cứ điều gì được ghi lại, nên những gì bạn đồng ý đúng là những gì bạn nhận. Resource profile được hiện trong chi tiết gói sau khi gói đã cài. Thông báo cập nhật chưa liệt kê phạm vi của gói.</p>
 
 <h2 id="paired-nodes">Các node đã ghép cặp</h2>
 <p>Hai node ClarkCant có thể được ghép cặp với nhau, ví dụ laptop của bạn và một máy chủ. Một node đã ghép cặp có thể báo cho node kia biết chuyện gì đã xảy ra, đặt một thông báo vào hộp thư của chủ node kia, và giao cho nó một việc, mỗi thứ chỉ trong phạm vi mà chủ của node nhận cho phép.</p>
