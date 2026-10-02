@@ -478,9 +478,45 @@ const stop = api.jobs.subscribe(jobId, (job) =&gt; render(job));</code></pre>
   <li><strong>The key is added by the node.</strong> The node adds the declared header from the key you stored for the consumer <code>package:&lt;id&gt;</code>; a header of that name set by the service is dropped. Cookie, proxy, forwarding and framing headers are stripped. A request sends at most 1 MiB, receives at most 2 MiB and takes at most 30 s.</li>
   <li><strong>Secret redaction.</strong> The key is replaced with <code>[redacted]</code> in the headers and body that come back, as sent and in its JSON-escaped, URL-encoded, base64 and base64url forms. This is a best-effort guard against a provider that echoes the key, not a guarantee: a key returned in another form, such as split, hashed or encrypted, reaches the service.</li>
 </ul>
-<p>A refusal is a JSON-RPC error from <code>-32010</code> to <code>-32018</code>: origin not declared, no call in flight, key unavailable, too large, provider unreachable, stopped, method not allowed by the calls in flight, too many requests, and an origin this node does not reach. Each request is audited as <code>egress</code> with the package, method, origin, key name, status and outcome, never a path, a body or a value. This method is between your node and its own services; it is not on <code>POST /mcp</code>.</p>
+<p>A refusal is a JSON-RPC error from <code>-32010</code> to <code>-32018</code>: origin not declared, no call in flight, key unavailable, too large, provider unreachable, stopped, method not allowed by the calls in flight, too many requests, and an origin this node does not reach. <code>-32019</code> is a request refused because a call in flight holds a file you picked (<a href="#service-files">files a service reads</a>). Each request is audited as <code>egress</code> with the package, method, origin, key name, status and outcome, never a path, a body or a value. This method is between your node and its own services; it is not on <code>POST /mcp</code>.</p>
 <p>Until the declared key is stored, the package's capabilities read as not signed in (<code>authenticated: false</code>) with the reason, for example “the secret LOOKUP_API_KEY has not been provided on this node”. A press, the agent and voice are refused with <code>409 CAPABILITY_NOT_AUTHENTICATED</code>. This is the “needs auth” state of a service; the widget lifecycle state <code>needs_auth</code> is not set for it. Storing the key for <code>package:&lt;id&gt;</code> with <code>POST /credentials</code> signs the service in without a restart, and removing the key signs it out. A key stored for a <code>command:</code> consumer is not used for egress, so store a separate one for the package.</p>
 <p class="note">A proxied network for services that need raw sockets is not built. Giving a container a network would weaken an isolation default.</p>
+
+<h2 id="service-files">Files a service reads</h2>
+<p>A service can work on a file a widget holds without ever getting a path or a handle to it. A capability names the argument fields that carry artifact ids in its tools facet:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>{ "tool": "render_audio", "ref": "com.example.media.render@1", "effectCategory": "read",
+  "execution": { "kind": "job", "version": 1 },
+  "inputArtifacts": { "version": 1, "fields": ["source"] } }</code></pre>
+</div>
+<p>A call that names a file in one of those fields can only come from the button of the widget instance that holds the file. The same call from Clark, voice, MCP or the CLI is refused with <code>403 ARTIFACT_INPUT_REFUSED</code>, because none of them holds the widget's grant. Before the call is sent, your node checks each named file:</p>
+<ul>
+  <li>the pressing widget instance holds a grant on it, and it is finished, not still being written (<code>403 ARTIFACT_INPUT_REFUSED</code>);</li>
+  <li>it belongs to the conversation the press happened in, and that conversation still holds the widget (<code>403 ARTIFACT_INPUT_REFUSED</code>);</li>
+  <li>the node can name the resource profile the package was granted; a package with none is refused rather than run with no cap (<code>403 ARTIFACT_INPUT_REFUSED</code>);</li>
+  <li>it fits that profile's input cap (<code>413 ARTIFACT_INPUT_TOO_LARGE</code>).</li>
+</ul>
+<p>A refused call sends nothing to the service. When your execution policy asks before such a call, the approval card names the widget and button the press came from, and what you approve covers them. Approving runs the call as that press: the node checks again that the conversation still holds the widget and that the button still invokes this capability, then makes every check above. A card whose widget is gone is refused with <code>APPROVAL_STALE</code>.</p>
+<p>The caps come from the <a href="#package-resources">granted profile</a>, never from the manifest. A manifest names fields, not sizes, so it cannot raise either cap:</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Profile</th><th>Input file</th><th>Media length</th></tr></thead>
+  <tbody>
+    <tr><td><code>interactive-light</code></td><td>8 MiB</td><td>2 min</td></tr>
+    <tr><td><code>interactive-heavy</code></td><td>16 MiB</td><td>10 min</td></tr>
+    <tr><td><code>media-workstation</code></td><td>25 MiB</td><td>2 h</td></tr>
+    <tr><td><code>background-compute</code></td><td>25 MiB</td><td>1 h</td></tr>
+  </tbody>
+</table></div>
+<p>Your node offers file reads in the MCP <code>initialize</code> as <code>capabilities.experimental["clarkcant/artifacts"]</code>: <code>{ version: 1, methods: ["clarkcant/artifacts.read"], chunkBytes: 262144, maxInputBytes, maxMediaSeconds, maxResultBytes }</code>. During the call, and only then, the service sends <code>clarkcant/artifacts.read</code> with <code>{ version: 1, artifactId, offset, length }</code> and gets back <code>{ artifactId, offset, bytes, eof, sizeBytes, mimeType }</code>, with the bytes in base64:</p>
+<ul>
+  <li><strong>Bounded reads.</strong> One read returns at most 256 KiB; a longer range is refused with <code>-32602</code>. The node checks the grant again on every read.</li>
+  <li><strong>Only the named files, only during the call.</strong> An id the call did not name in a declared field is refused with <code>-32020</code>, and so is a read whose answer arrives after the call has ended; its bytes are not handed over.</li>
+  <li><strong>Other refusals.</strong> A revoked grant, a file that is gone, or a call that has spent its read budget is <code>-32021</code>. The budget is four passes over the call's files, in at most four reads per 256 KiB piece, plus 16 more reads for headers and seeks.</li>
+  <li><strong>Media length is the service's to enforce.</strong> Only the service can read a clip's length, so it should refuse one longer than <code>maxMediaSeconds</code> before it does any work. <code>maxResultBytes</code> is the largest file one result may carry, about 2.95 MiB. A returned file becomes an artifact only when the job completes, so a cancelled or failed job leaves no file presented as finished.</li>
+  <li><strong>No egress while a file is held.</strong> While a call that holds a file is in flight, the service's <a href="#package-egress"><code>clarkcant/egress.fetch</code></a> is refused with <code>-32019</code>, unless that call was decided as <code>external-write</code>, <code>communication</code>, <code>destructive</code> or <code>financial</code>, the effects your execution policy's risk check asks about. A <code>GET</code> can carry bytes in its URL, so a <code>read</code> or <code>local-write</code> call that holds a file gets no egress at all until it ends. A capability that both reads your file and sends it to a provider declares <code>external-write</code> or higher, so your policy decides that send.</li>
+</ul>
+<p class="note">The <a href="cli.html#reference-media-render">reference media render tool</a> is built on this: its widget picks a WAV clip, and its service streams the clip a piece at a time under <code>background-compute</code>.</p>
 
 <h2 id="browser-tokens">Browser tokens for a widget (<code>tokens@1</code>)</h2>
 <p>Some vendor SDKs only work with a token in the browser. A package's UI facet may declare the providers its widget needs one from, at most 8 providers with 16 scopes each:</p>
