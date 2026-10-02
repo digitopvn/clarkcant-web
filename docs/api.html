@@ -396,6 +396,8 @@ api.lifecycle.onDispose(unbind);</code></pre>
 <p>A granted decision can still be refused:</p>
 <ul>
   <li><code>409 DIGEST_MISMATCH</code>: the listing changed after the question. The question stays open, and nothing is installed.</li>
+  <li><code>409 DIGEST_MISMATCH</code>, for a package listed by a path on your machine: its files changed after the question. Nothing is installed and the question leaves the inbox. Install it again to be asked about the files as they are now.</li>
+  <li><code>400 LOCAL_SOURCE_UNREADABLE</code>: the files at a local path can't be read, so the question is refused before it is asked.</li>
   <li><code>403 POLICY_REFUSED</code>: your execution mode now forbids installing.</li>
   <li><code>APPROVAL_FORGED</code>: the digest sent is not the one that was asked about.</li>
   <li><code>APPROVAL_ALREADY_DECIDED</code>: the question was already decided, so a second press never installs twice.</li>
