@@ -396,6 +396,8 @@ api.lifecycle.onDispose(unbind);</code></pre>
 <p>Một quyết định duyệt vẫn có thể bị từ chối:</p>
 <ul>
   <li><code>409 DIGEST_MISMATCH</code>: trang gói đã đổi sau khi hỏi. Câu hỏi vẫn mở, và chưa cài gì.</li>
+  <li><code>409 DIGEST_MISMATCH</code>, với gói được liệt kê bằng một đường dẫn trên máy bạn: các tệp của gói đã đổi sau khi hỏi. Chưa cài gì và câu hỏi rời khỏi hộp thư. Hãy cài lại để được hỏi về các tệp như hiện tại.</li>
+  <li><code>400 LOCAL_SOURCE_UNREADABLE</code>: không đọc được các tệp ở đường dẫn cục bộ, nên bị từ chối ngay khi định hỏi.</li>
   <li><code>403 POLICY_REFUSED</code>: chế độ thực thi của bạn giờ cấm cài.</li>
   <li><code>APPROVAL_FORGED</code>: digest gửi lên không phải digest đã hỏi.</li>
   <li><code>APPROVAL_ALREADY_DECIDED</code>: câu hỏi đã được quyết định rồi, nên bấm lần hai không bao giờ cài hai lần.</li>
