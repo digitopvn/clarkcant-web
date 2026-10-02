@@ -91,6 +91,7 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
     <tr><td><code>GET /health</code></td><td>Tình trạng sống, nền tảng runtime, giao thức đã thương lượng. Không kèm danh tính node.</td></tr>
     <tr><td><code>GET /.well-known/clarkcant.json</code></td><td>Tài liệu khám phá, liệt kê mọi giao diện (api, mcp, websocket, cli) và endpoint của chúng.</td></tr>
     <tr><td><code>GET /openapi.json</code></td><td>Mô tả OpenAPI 3.1 của phần REST ổn định.</td></tr>
+    <tr><td><code>GET /connections/callback/{packageId}</code></td><td>Nơi provider đưa trình duyệt của bạn quay về sau khi bạn <a href="#package-connections">kết nối tài khoản của một gói</a>. <code>state</code> dùng một lần do node của bạn cấp xác thực route này. Trả về một trang ngắn không bao giờ lặp lại mã hay state.</td></tr>
   </tbody>
 </table></div>
 
@@ -563,6 +564,53 @@ const stop = api.jobs.subscribe(jobId, (job) =&gt; render(job));</code></pre>
 </ul>
 <p class="note"><a href="cli.html#reference-media-render">Công cụ dựng media mẫu</a> được xây trên cơ chế này: widget của nó chọn một đoạn WAV, và service của nó đọc đoạn đó theo từng phần dưới profile <code>background-compute</code>.</p>
 
+<h2 id="package-connections">Kết nối một tài khoản</h2>
+<p>Một service làm việc trên tài khoản của bạn ở một provider, chẳng hạn danh sách công việc hay lịch của bạn, khai báo một <code>connection</code> trên facet tools của nó. Node của bạn làm mọi việc chạm tới thông tin xác thực của tài khoản: service thấy câu trả lời của provider và widget thấy trạng thái. Không bên nào giữ access token, refresh token hay mã ủy quyền, và trang web hay container của service cũng vậy.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>"connection": {
+  "version": 1,
+  "provider": "fake.tasks",
+  "displayName": "Fake Tasks (test fixture)",
+  "flow": "oauth-pkce",
+  "authorization": {
+    "authorizationEndpoint": "http://127.0.0.1:8880/oauth/authorize",
+    "tokenEndpoint": "http://127.0.0.1:8880/oauth/token",
+    "revocationEndpoint": "http://127.0.0.1:8880/oauth/revoke",
+    "clientId": "connected-app-dev"
+  },
+  "scopes": [
+    { "scope": "tasks.read", "purpose": "Lists your tasks." },
+    { "scope": "tasks.write", "purpose": "Renames a task when you ask." }
+  ],
+  "endpoints": ["http://127.0.0.1:8880"],
+  "probe": { "url": "http://127.0.0.1:8880/api/me" }
+}</code></pre>
+</div>
+<p>Luồng duy nhất là authorization code với PKCE, nên một package không bao giờ mang client secret, và client id là công khai. Mọi URL phải là HTTPS, trừ địa chỉ loopback. Probe phải nằm trên một endpoint đã khai báo. Một package khai báo tối đa một kết nối, và một endpoint không thể đồng thời là một origin <a href="#package-egress">egress</a>, nên mỗi origin chỉ có một thông tin xác thực. Mỗi capability nêu các scope nó cần trong <code>requiredScopes</code>, và mỗi scope đó phải là scope mà kết nối xin.</p>
+<ul>
+  <li><strong>Kết nối.</strong> Bạn bấm <strong>Kết nối</strong> trên package trong Cài đặt → Tiện ích. Đây là giao diện của chính ứng dụng, không bao giờ là của widget. <code>POST /packages/{id}/connection</code> tạo một cặp PKCE (S256) và một <code>state</code> dùng một lần, giữ trong bộ nhớ mười phút, rồi trả về URL ủy quyền của provider để ứng dụng mở trong trình duyệt hệ thống. Chỉ người dùng mới kết nối được: qua MCP hoặc relay, yêu cầu bị từ chối với <code>403 PERSON_ONLY</code>, nên một AI client không thể tự bắt đầu kết nối cho chính nó. Yêu cầu cũng bị từ chối với <code>409 CONNECT_ON_THIS_MACHINE</code> trừ khi nó tới node của bạn qua loopback, vì provider đưa trình duyệt quay về chính máy đó.</li>
+  <li><strong>Quay về.</strong> Provider chuyển hướng về <code>http://127.0.0.1:&lt;port&gt;/connections/callback/&lt;package id&gt;</code>. Mỗi package có đường callback riêng, và node của bạn kiểm tra rằng state được cấp cho đúng package mà đường dẫn nêu trước khi gửi mã đi bất cứ đâu, nên một mã gửi về cho package này không bao giờ được đổi cho package khác (tấn công OAuth mix-up). Node đổi mã tại token endpoint đã khai báo, so các scope được cấp với các scope đã khai báo và gọi probe. Chỉ khi đó node mới giữ kết nối, với các token nằm trong bảng riêng. Trang mà trình duyệt tới không bao giờ lặp lại mã hay state và không gửi referrer, còn một callback bị phát lại hoặc giả mạo sẽ bị từ chối.</li>
+  <li><strong>Ký yêu cầu.</strong> Service vẫn chạy không có mạng. Khi nó xin một URL trên một endpoint của kết nối bằng <a href="#package-egress"><code>clarkcant/egress.fetch</code></a>, node của bạn tự thêm <code>authorization: Bearer …</code>, chỉ khi một lệnh gọi tới service đang chạy, bỏ mọi header <code>authorization</code> do service đặt, và xoá token khỏi câu trả lời trả lại cho service. Khi không có token dùng được, yêu cầu bị từ chối với <code>-32012</code>. Mỗi yêu cầu được ghi kiểm toán là <code>egress</code> kèm provider của kết nối, không bao giờ kèm token.</li>
+  <li><strong>Làm mới.</strong> Token sắp hết hạn được làm mới trước, và lần gia hạn giữ nguyên các scope đã được cấp lúc đồng ý, trừ khi provider nói khác. Một phản hồi <code>401</code> của provider cho chính token đã gửi được làm mới một lần. Sau đó chỉ <code>400</code> hoặc <code>401</code> từ token endpoint mới thu hồi kết nối; <code>408</code>, <code>429</code> hay <code>5xx</code> giữ nguyên kết nối. Một yêu cầu không bao giờ được thử lại.</li>
+  <li><strong>Sẵn sàng.</strong> Trạng thái là <code>not-connected</code>, <code>connected</code>, <code>partial</code>, <code>expired</code> hoặc <code>revoked</code>, kèm các scope đã xin, đã cấp và còn thiếu, cùng một lý do. Một capability chưa sẵn sàng khi kết nối chưa có, đã hết hạn hoặc đã bị thu hồi, hoặc không cấp một scope trong <code>requiredScopes</code> của nó, và lý do nói rõ trường hợp nào, ví dụ “the Fake Tasks (test fixture) account did not grant tasks.write; reconnect it in Settings and allow it”. Widget đọc trạng thái này từ <code>actions.availability()</code>; một lần bấm, agent và giọng nói bị từ chối với <code>CAPABILITY_NOT_AUTHENTICATED</code> cùng lý do đó. Capability có scope đã được cấp vẫn hoạt động trên một kết nối cấp một phần.</li>
+  <li><strong>Thu hồi và kết nối lại.</strong> <strong>Thu hồi</strong> gọi revocation endpoint của provider khi có khai báo, xoá các token, và trạng thái đọc là <code>revoked</code> trước khi yêu cầu trả lời, kể cả khi đang có một lần gia hạn dở dang. <strong>Kết nối lại</strong> chạy lại bước Kết nối. Gỡ package, từ Cài đặt hoặc bằng cách nhờ Clark, cũng quên kết nối theo cách đó, và một lần ủy quyền còn đang chờ callback không thể hoàn tất nữa.</li>
+  <li><strong>Phiên bản mới.</strong> Node của bạn giữ một dấu vân tay về nơi mà khai báo cho phép token của tài khoản đi tới: provider, client id, các endpoint ủy quyền, token và thu hồi, các endpoint và probe. Nếu một bản cập nhật hoặc một lần quay về phiên bản cũ thay đổi bất kỳ mục nào trong số đó, kết nối đọc là <code>revoked</code>, các token bị xoá mà không được gửi tới các địa chỉ mới, và bạn kết nối lại theo khai báo mới.</li>
+</ul>
+<p><strong>Trong Cài đặt.</strong> Cài đặt → Tiện ích hiện tài khoản của từng package: trạng thái, các scope đã cấp và lý do nó chưa dùng được đầy đủ. Nút <strong>Kết nối</strong> hiện khi chưa kết nối, còn lại là <strong>Kết nối lại</strong>, và <strong>Thu hồi</strong> hiện khi đã kết nối hoặc kết nối một phần. Trong lúc bạn đăng nhập ở provider, Cài đặt báo đang chờ và đọc lại trạng thái mỗi 1,5 giây, tối đa năm phút.</p>
+<p><strong>Một capability, một nhật ký kiểm toán.</strong> Kết nối không thay đổi cách một capability chạy. Nút của widget, <code>invoke_capability</code> của Clark và một câu lệnh nói vẫn tới cùng capability, cùng chính sách thực thi của bạn, cùng thẻ phê duyệt của chính ứng dụng và cùng nhật ký kiểm toán. Một lần ghi không nhận được câu trả lời trước hạn chót được ghi là chưa rõ kết quả và không được thử lại.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Method</th><th>Đường dẫn</th><th>Trả về</th><th>Từ chối</th></tr></thead>
+  <tbody>
+    <tr><td>GET</td><td><code>/packages/{id}/connection</code></td><td><code>200 { connection }</code>: trạng thái ở trên, không bao giờ có token.</td><td><code>404 NOT_INSTALLED</code>, <code>404 NO_CONNECTION</code>, <code>409 MANIFEST_UNREADABLE</code>, <code>503 CONNECTIONS_UNAVAILABLE</code></td></tr>
+    <tr><td>POST</td><td><code>/packages/{id}/connection</code></td><td><code>200 { authorizationUrl }</code>. Chỉ người dùng.</td><td>Các mã ở trên, cộng thêm <code>403 PERSON_ONLY</code>, <code>409 CONNECT_ON_THIS_MACHINE</code>, và <code>409 ENDPOINT_REFUSED</code> cho địa chỉ provider loopback hoặc mạng riêng trên một node khởi động không có <code>CC_EGRESS_ALLOW_PRIVATE_NETWORK=1</code></td></tr>
+    <tr><td>POST</td><td><code>/packages/{id}/connection/revoke</code></td><td><code>200 { connection }</code>, đã ở trạng thái <code>revoked</code>.</td><td>Như với <code>GET</code></td></tr>
+    <tr><td>GET</td><td><code>/connections/callback/{packageId}</code></td><td>Công khai. <code>200</code> “Connected to …”, hoặc <code>400</code> “Not connected” kèm điều gì thất bại và rằng chưa có gì được kết nối.</td><td><code>503</code> khi node không kết nối tài khoản</td></tr>
+  </tbody>
+</table></div>
+<p><code>GET /packages</code> cũng mang trạng thái <code>connection</code> của từng package đã cài. Thu hồi không giới hạn cho người dùng: bất kỳ giao diện nào giữ token của node bạn đều có thể thu hồi, một cách có chủ ý, vì thu hồi chỉ thu hẹp quyền truy cập.</p>
+<p class="note"><a href="cli.html#reference-connected-app">Ứng dụng kết nối tài khoản mẫu</a> chứng minh điều này với fake connector của nó, một fixture kiểm thử và phát triển, không phải provider thật. Chưa có provider thật nào (<a href="https://github.com/digitopvn/clarkcant/issues/333">digitopvn/clarkcant#333</a>). Ứng dụng desktop chỉ mở địa chỉ HTTPS trong trình duyệt hệ thống, nên một provider trên địa chỉ <code>http</code> loopback, như fake connector, được kết nối từ trình duyệt. Chỉ luồng authorization code với PKCE được xây dựng; nhiều tài khoản cho một package, hay một kết nối dùng chung giữa các package, thì chưa. Cài lại một package sau khi gỡ hiện để service của nó ở trạng thái không hoạt động, còn khôi phục thì vẫn được (<a href="https://github.com/digitopvn/clarkcant/issues/400">digitopvn/clarkcant#400</a>).</p>
+
 <h2 id="browser-tokens">Token trình duyệt cho widget (<code>tokens@1</code>)</h2>
 <p>Một số SDK của nhà cung cấp chỉ chạy được với token trong trình duyệt. UI facet của gói có thể khai báo các provider mà widget cần token, tối đa 8 provider, mỗi provider 16 scope:</p>
 <div class="code" data-code>
@@ -592,7 +640,7 @@ const stop = api.jobs.subscribe(jobId, (job) =&gt; render(job));</code></pre>
 <p class="note">Các route này có trong <code>/openapi.json</code>. Lời từ chối: <code>403 TOKEN_PROVIDER_NOT_DECLARED</code> hoặc <code>TOKEN_SCOPE_NOT_DECLARED</code>, <code>409 TOKEN_PACKAGE_NOT_ACTIVE</code> hoặc <code>TOKEN_SESSION_ENDED</code>, <code>422 TOKEN_PROVIDER_UNSCOPED</code>, <code>TOKEN_SCOPE_NOT_SUPPORTED</code> hoặc <code>TOKEN_TTL_TOO_LONG</code>, <code>502 TOKEN_ISSUE_FAILED</code> và <code>503 TOKEN_PROVIDER_UNAVAILABLE</code>. ClarkCant chưa kèm adapter provider nào, nên hiện mọi request đều là <code>503 TOKEN_PROVIDER_UNAVAILABLE</code>.</p>
 
 <h2 id="package-reach">Những gì một gói chạm tới, hiện trước khi cài</h2>
-<p>Một mục trong thư mục gói nêu phạm vi của gói trong <code>declaredReach</code>, <code>{ origins, secrets, browserTokens }</code>; trang gói không có trường này nghĩa là gói không chạm tới gì. Trước khi cấp bất cứ quyền gì, thẻ thư mục gói trong hội thoại, câu hỏi cài đặt trong hộp thư và chi tiết gói trong Cài đặt → Tiện ích liệt kê từng origin kèm mục đích, từng khoá theo tên kèm mục đích (không bao giờ hiện giá trị), và từng provider token trình duyệt kèm scope và mục đích.</p>
+<p>Một mục trong thư mục gói nêu phạm vi của gói trong <code>declaredReach</code>, <code>{ origins, secrets, browserTokens, connections }</code>; trang gói không có trường này nghĩa là gói không chạm tới gì. Trước khi cấp bất cứ quyền gì, thẻ thư mục gói trong hội thoại, câu hỏi cài đặt trong hộp thư và chi tiết gói trong Cài đặt → Tiện ích liệt kê từng origin kèm mục đích, từng khoá theo tên kèm mục đích (không bao giờ hiện giá trị), từng provider token trình duyệt kèm scope và mục đích, và từng <a href="#package-connections">kết nối tài khoản</a> kèm provider, scope và endpoint.</p>
 <p>Một artifact có manifest khai báo phạm vi khác với những gì trang gói đã hiện sẽ bị từ chối với <code>409 DECLARED_REACH_MISMATCH</code> trước khi có bất cứ điều gì được ghi lại, nên những gì bạn đồng ý đúng là những gì bạn nhận. Resource profile được hiện trong chi tiết gói sau khi gói đã cài. Thông báo cập nhật chưa liệt kê phạm vi của gói.</p>
 
 <h2 id="paired-nodes">Các node đã ghép cặp</h2>
