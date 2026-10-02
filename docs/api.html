@@ -418,6 +418,11 @@ const stop = api.jobs.subscribe(jobId, (job) =&gt; render(job));</code></pre>
 </table></div>
 <p class="note">These routes are in <code>/openapi.json</code>. A node that cannot run jobs answers <code>503 JOB_UNAVAILABLE</code>. <code>POST /stop</code> counts the jobs it cancelled in <code>stopped.jobs</code>.</p>
 
+<h2 id="widget-press-context">A press that reads what a widget shows</h2>
+<p>An isolated widget describes what it shows with <code>api.semantic.publish(summary, selectedIds, values?)</code>. The app sends the last publish of a burst after 250 ms, and sends publishes one at a time, in order. An <code>agent</code> binding can read that description when it is pressed, through its <code>contextRefs</code> (<code>selection</code>, <code>widget</code>), so a press made right after a publish must not run against the previous description.</p>
+<p>Before such a press runs, the app sends any publish still settling and waits until your machine holds the description published before the press, or a newer one. Publishes made after the press are sent as usual but not waited for, so a widget that keeps publishing cannot hold a press back. Any other press waits only for a publish still settling, or for one your machine refused last.</p>
+<p>The wait is bounded: each send is given up after 5 seconds and the whole wait after 8. A description your machine refused is sent once more. If that fails too, or the wait runs out, <code>api.actions.invoke</code> rejects with the app's refusal (“What the widget shows did not reach Clark in time, so this action did not run…”) and the press does not run. Nothing in the widget changes, and the person can press again. Show that refusal where the press was made. The <a href="cli.html#reference-text-editor">reference text editor</a> does this for its rewrite button.</p>
+
 <h2 id="package-resources">What a package runs with</h2>
 <p>A package's services run in a container on your machine. The package asks for the size of that container by naming a resource profile in its manifest, never with numbers:</p>
 <div class="code" data-code>
