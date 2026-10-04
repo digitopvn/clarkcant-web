@@ -239,7 +239,7 @@ clarkcant status</code></pre>
 <div class="table-wrap" tabindex="0"><table>
   <thead><tr><th>Lệnh</th><th>Chức năng</th></tr></thead>
   <tbody>
-    <tr><td><code>clarkcant ask "&lt;text&gt;" [-c &lt;conversationId&gt;]</code></td><td>Stream câu trả lời của Clark ra stdout. Không có <code>-c</code> thì tạo cuộc trò chuyện mới và in id của nó ra stderr.</td></tr>
+    <tr><td><code>clarkcant ask "&lt;text&gt;" [-c &lt;conversationId&gt;]</code></td><td>Stream câu trả lời của Clark ra stdout. Không có <code>-c</code> thì tạo cuộc trò chuyện mới và in id của nó ra stderr. Khi tin nhắn được nhập (steer) vào câu trả lời Clark đang viết (<code>resolution: "steered"</code>), lệnh báo điều đó ra stderr và thoát với mã 0; hãy đọc cuộc trò chuyện để xem câu trả lời.</td></tr>
     <tr><td><code>clarkcant status</code></td><td>Tình trạng node.</td></tr>
     <tr><td><code>clarkcant conversations</code></td><td>Liệt kê cuộc trò chuyện.</td></tr>
     <tr><td><code>clarkcant new [title]</code></td><td>Tạo cuộc trò chuyện.</td></tr>

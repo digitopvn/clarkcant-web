@@ -307,6 +307,9 @@ curl -s -X POST "$CLARKCANT_URL/conversations/&lt;conversationId&gt;/messages" \
 </ul>
 <p>Dựng lại tạo một session mới được brief bằng phần tóm tắt đã lập, nêu lại hướng dẫn và tool, và không đụng tới chính hội thoại. Nếu không tạo được session mới, hoặc bước policy bị lỗi, lượt tiếp tục trên session cũ. Tin nhắn gửi trong lúc dựng lại sẽ chờ việc dựng lại xong và vào session mới, và Stop trong lúc dựng lại sẽ bỏ session mới và không gửi gì. Giá trị khác là <code>off</code>. Các ngưỡng là phán đoán từ một mô phỏng chi phí có kịch bản, không phải số đo thực tế.</p>
 
+<h3 id="model-switch">Khi bạn đổi model</h3>
+<p>Đổi model không bao giờ cắt ngang câu trả lời Clark đang viết: thay đổi có hiệu lực từ tin nhắn tiếp theo của bạn, tin nhắn đó bắt đầu một session mới trên model mới, được brief bằng phần tóm tắt cuộc trò chuyện. Clark không bao giờ trả lời bằng model cũ thay vào đó. Nếu đổi model thất bại, lượt đó báo lỗi bằng ngôn ngữ của bạn và cuộc trò chuyện được giữ nguyên, ví dụ: “Không chuyển được cuộc trò chuyện này sang {provider/model}: {lý do}. Tin nhắn của bạn đã được lưu và cuộc trò chuyện vẫn giữ nguyên. Hãy thử lại, hoặc chọn model khác.” Đường dẫn tệp cục bộ được xoá khỏi lý do. Nếu việc chuẩn bị trả lời lâu hơn thời gian cho phép của lượt, lượt đó dừng với “Không chuẩn bị xong để trả lời trong {N} giây, nên lượt này đã dừng. Tin nhắn của bạn đã được lưu. Hãy thử lại, hoặc chọn model khác nếu lỗi này lặp lại.”</p>
+
 <h2 id="pages">Đọc tiếp</h2>
 <ul>
   <li><a href="api.html">REST &amp; SSE</a>: mọi route, body và sự kiện stream.</li>

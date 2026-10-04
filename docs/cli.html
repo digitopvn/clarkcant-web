@@ -239,7 +239,7 @@ clarkcant status</code></pre>
 <div class="table-wrap" tabindex="0"><table>
   <thead><tr><th>Command</th><th>What it does</th></tr></thead>
   <tbody>
-    <tr><td><code>clarkcant ask "&lt;text&gt;" [-c &lt;conversationId&gt;]</code></td><td>Streams Clark's reply to stdout. Without <code>-c</code> it creates a conversation and prints its id on stderr.</td></tr>
+    <tr><td><code>clarkcant ask "&lt;text&gt;" [-c &lt;conversationId&gt;]</code></td><td>Streams Clark's reply to stdout. Without <code>-c</code> it creates a conversation and prints its id on stderr. When the message joins a reply Clark is already writing (<code>resolution: "steered"</code>), it says so on stderr and exits 0; read the conversation for the answer.</td></tr>
     <tr><td><code>clarkcant status</code></td><td>Health and node.</td></tr>
     <tr><td><code>clarkcant conversations</code></td><td>Lists conversations.</td></tr>
     <tr><td><code>clarkcant new [title]</code></td><td>Creates a conversation.</td></tr>
