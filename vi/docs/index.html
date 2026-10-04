@@ -252,6 +252,15 @@ curl -s -X POST "$CLARKCANT_URL/conversations/&lt;conversationId&gt;/messages" \
 </div>
 <p class="note"><strong>Giữ kín token.</strong> Token cho toàn quyền với Clark của bạn. Mặc định node chỉ lắng nghe trên loopback; <code>--allow-public-bind</code> mở nó ra ngoài và cần TLS đứng trước. Chưa có đăng nhập OAuth: bearer token là thông tin xác thực duy nhất.</p>
 
+<h2 id="context-planner">Clark chọn ngữ cảnh thế nào</h2>
+<p>Các biến môi trường sau trên node chọn ngữ cảnh mà Clark gửi cho model cùng mỗi tin nhắn:</p>
+<ul>
+  <li><code>CLARKCANT_CONTEXT_PLANNER</code> (mặc định bật): Khi bật, bản ghi nhớ và phần tóm tắt cho session mới tập trung vào tin đang được trả lời. Các tin cũ hơn trong hội thoại mà khớp sẽ đến với model dưới dạng dữ liệu có ghi rõ ai nói, không bao giờ là chỉ dẫn. Việc chạy nền và task worker do bạn khởi động có thể đọc cùng ngữ cảnh đó khi cần. <code>off</code> trả lại phần tóm tắt cố định (12 tin mới nhất) và bản ghi nhớ cố định (12 ghi nhớ mới nhất), và thôi đưa ngữ cảnh đã truy xuất cho việc chạy nền và task worker. Hai cải tiến vẫn giữ ở cả hai chế độ: bản ghi nhớ không đọc được thì lượt chạy tiếp mà không có nó thay vì thất bại, và một lượt có thể được dừng trong lúc đang đọc ngữ cảnh. Phần tóm tắt cũng đọc 40 tin mới nhất ở cả hai chế độ. Chỉ việc do một người yêu cầu trong hội thoại mới được nhận ngữ cảnh đã truy xuất; task do node khác uỷ cho, do một tự động hoá khởi chạy hay do chính node tạo ra thì không.</li>
+  <li><code>CLARKCANT_CONTEXT_DECIDER</code> (mặc định <code>rank</code>): <code>jev</code> cho Jev, bộ chọn của node, chỉ chọn trong các lựa chọn node đã cho phép và không bao giờ cấp quyền gì (<a href="https://github.com/digitopvn/clarkcant/blob/main/docs/mini-app/jev-configuration.md" rel="noopener">cách cấu hình</a>), sắp lại 8 kết quả khớp nhất khi thứ hạng sát nhau và câu trả lời có thể đổi điều được gửi đi. Khi đang mở dần tool, Jev còn có thể chọn một nhóm tool cho tin đầu tiên không nhắc nhóm nào. Lỗi hay hết giờ thì giữ thứ tự tất định. Giá trị khác là <code>rank</code>.</li>
+  <li><code>CLARKCANT_TOOL_DISCLOSURE</code> (mặc định <code>all</code>): <code>progressive</code> đưa các tool lõi cùng các nhóm tool mà tin nhắn nhắc tới, chỉ tăng thêm trong một session. Vẫn tắt vì ước tính offline, trong mẫu, cho thấy tốn hơn khoảng 7% khi tính cả việc ghi lại prompt cache. Giá trị khác là <code>all</code>.</li>
+</ul>
+<p class="note"><strong>Nội dung gửi tới provider của Jev</strong> (chỉ khi <code>CLARKCANT_CONTEXT_DECIDER=jev</code> và chỉ khi Jev được hỏi): tin đang được trả lời, đã che thông tin nhạy cảm, tối đa 300 ký tự (400 ký tự khi chọn nhóm tool), cùng từng ghi nhớ hay tin cũ hơn là ứng viên, đã che, tối đa 200 ký tự. Không có gì khác rời khỏi node, và Jev không cấp quyền gì.</p>
+
 <h2 id="pages">Đọc tiếp</h2>
 <ul>
   <li><a href="api.html">REST &amp; SSE</a>: mọi route, body và sự kiện stream.</li>
