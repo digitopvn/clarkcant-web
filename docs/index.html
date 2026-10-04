@@ -306,6 +306,9 @@ curl -s -X POST "$CLARKCANT_URL/conversations/&lt;conversationId&gt;/messages" \
 </ul>
 <p>A rebuild starts a fresh session briefed by the planned recap, restates instructions and tools, and leaves the conversation itself untouched. If the fresh session cannot be created, or the policy step fails, the turn continues on the old one. A message sent during a rebuild waits for it and lands in the new session, and Stop during a rebuild discards the new session and sends nothing. Any other value is <code>off</code>. The thresholds are judgements from a scripted cost simulation, not live measurements.</p>
 
+<h3 id="model-switch">When you change the model</h3>
+<p>Changing the model never cuts off a reply Clark is writing: the change applies from your next message, which starts a new session on the new model, briefed with a recap of the conversation. Clark never answers on the previous model instead. If the switch fails, the turn says so in your language and the conversation is left as it was, for example: “Could not switch this conversation to {provider/model}: {reason}. Your message is saved and the conversation is unchanged. Retry, or choose another model.” Local file paths are removed from the reason. If getting ready to answer takes longer than the turn's time budget, the turn stops with “Could not get ready to answer within {N} s, so this turn was stopped. Your message is saved. Retry, or choose another model if this keeps happening.”</p>
+
 <h2 id="pages">Where to next</h2>
 <ul>
   <li><a href="api.html">REST &amp; SSE</a>: every route, request body and stream event.</li>
