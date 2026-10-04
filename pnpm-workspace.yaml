@@ -1,0 +1,9 @@
+allowBuilds:
+  esbuild: true
+  workerd: true
+saveExact: true
+blockExoticSubdeps: true
+verifyStoreIntegrity: true
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+  - '@cloudflare/workers-types@5.20261004.1'

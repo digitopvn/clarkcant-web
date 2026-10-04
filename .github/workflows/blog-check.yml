@@ -1,0 +1,34 @@
+name: Blog checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLARKCANT_SOURCE: ${{ github.workspace }}/.clarkcant-source
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: digitopvn/clarkcant
+          ref: b7f9e364a24299317aba94f2b32af76550caa024
+          path: .clarkcant-source
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm install --frozen-lockfile
+        working-directory: .clarkcant-source
+      - run: corepack pnpm build:widgets
+      - run: corepack pnpm verify
+      - run: corepack pnpm exec playwright install --with-deps chromium
+      - run: corepack pnpm db:local
+      - run: node test/setup-browser.mjs
+      - run: corepack pnpm exec wrangler d1 execute clarkcant-blog --local --file test-results/setup.sql
+      - run: corepack pnpm test:e2e
