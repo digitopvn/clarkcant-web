@@ -261,6 +261,50 @@ curl -s -X POST "$CLARKCANT_URL/conversations/&lt;conversationId&gt;/messages" \
 </ul>
 <p class="note"><strong>Nội dung gửi tới provider của Jev</strong> (chỉ khi <code>CLARKCANT_CONTEXT_DECIDER=jev</code> và chỉ khi Jev được hỏi): tin đang được trả lời, đã che thông tin nhạy cảm, tối đa 300 ký tự (400 ký tự khi chọn nhóm tool), cùng từng ghi nhớ hay tin cũ hơn là ứng viên, đã che, tối đa 200 ký tự. Không có gì khác rời khỏi node, và Jev không cấp quyền gì.</p>
 
+<h3 id="context-data-classes">Model được nhận những gì</h3>
+<p>Mỗi khối node của bạn thêm vào ngữ cảnh của một model được gắn nhãn <code>public</code>, <code>internal</code>, <code>confidential</code> hoặc <code>secret</code>, chỉ từ chính văn bản của nó và trước khi bất cứ thứ gì được xếp hạng hay gửi đi:</p>
+<ul>
+  <li><code>secret</code>: dạng credential, như bearer token, JWT, khoá riêng PEM, AWS access key id, token API của GitHub hoặc Google, mật khẩu trong URL, token có tiền tố phát hành (<code>sk-</code>, <code>ghp_</code>, <code>xoxb-</code>…) hoặc giá trị gán cho một trường mang tên bí mật. Code ở vị trí đó không phải giá trị: lời gọi schema như <code>z.string()</code>, một kiểu, một tham chiếu thành viên hoặc placeholder (<code>${…}</code>, <code>{{…}}</code>, <code>&lt;…&gt;</code>), trong một trường hay một URL.</li>
+  <li><code>confidential</code>: địa chỉ email, số điện thoại hoặc đường dẫn thư mục home.</li>
+  <li><code>internal</code>: mọi thứ khác người dùng hoặc Clark viết, kể cả định danh trong code như <code>token_refresh_worker_2</code>, mã commit và digest. Ghi nhớ được che thông tin nhạy cảm khi ghi nên được đọc là <code>internal</code>.</li>
+</ul>
+<p>Một model profile có thể nêu nó được nhận gì bằng <code>trustClass</code> (<code>local</code>, <code>first-party</code>, <code>approved-third-party</code> hoặc <code>untrusted</code>) và <code>allowedDataClasses</code>. Theo trust class, <code>local</code> được nhận mọi thứ, kể cả <code>secret</code>; <code>first-party</code> và <code>approved-third-party</code> tới <code>confidential</code>; <code>untrusted</code> chỉ <code>public</code>. Có cả hai thì profile chỉ nhận những gì cả hai cho phép. Một danh sách không kèm trust class được lấy đúng như đã viết, nên nó có thể thêm <code>secret</code> cho một profile chưa gắn nhãn. Profile không có cả hai được nhận mọi thứ trừ <code>secret</code>, và một model được nhiều profile nêu chỉ nhận những gì tất cả cho phép.</p>
+<p>Khi <code>CLARKCANT_CONTEXT_PLANNER</code> bật, khối vượt trần của model đang trả lời bị bỏ khỏi phần tóm tắt, bản ghi nhớ, các tin cũ hơn, ngữ cảnh mà việc chạy nền hay task worker truy xuất (kể cả các lần đọc <code>read_context</code>), hướng dẫn dự án và kết quả của <code>search_history</code>, mỗi kết quả được xét trên toàn bộ mục đã lưu, không chỉ đoạn trích hiển thị. Mỗi chỗ chỉ báo số khối bị giữ lại, không bao giờ báo nội dung, và phần tóm tắt không chỉ tới công cụ nào để đọc lại chúng. Jev chỉ được đưa ứng viên <code>public</code> và <code>internal</code>.</p>
+<p>Việc chạy nền bỏ qua model profile không được nhận mức dữ liệu của công việc (mức của yêu cầu hoặc mục tiêu task), dù planner bật hay tắt. Khi không profile nào đạt, công việc vẫn chạy trên model đã cấu hình của node: chính văn bản yêu cầu hoặc mục tiêu được gửi tới model đó bất kể mức của nó, và chỉ ngữ cảnh đã truy xuất bị thu hẹp về những gì model đó được nhận. Khi chính mức dữ liệu làm mọi profile bị loại, node ghi một dòng JSON trên stderr (<code>model-route</code>, chỉ gồm mức dữ liệu và số đếm).</p>
+<p class="note"><strong>Phạm vi.</strong> Trần này chỉ áp dụng cho ngữ cảnh do node của bạn thêm vào. Nó không áp dụng cho kết quả công cụ mà model tự đọc (một tệp, đầu ra của lệnh, một trang web), tệp đính kèm người dùng gửi, hay những gì một session đang tiếp tục đã giữ từ các lượt trước; nó không phải ranh giới đối với những thứ đó, và một model không bao giờ được thấy một mức dữ liệu nào đó thì không nên được giao công cụ có thể đọc nó. <code>CLARKCANT_CONTEXT_PLANNER=off</code> tắt việc giữ lại, kể cả với <code>search_history</code>, nên văn bản dạng bí mật trong phần tóm tắt, bộ nhớ và lịch sử tới được bất cứ model nào trả lời; định tuyến theo mức dữ liệu vẫn áp dụng khi planner tắt.</p>
+
+<h3 id="context-project-instructions">Hướng dẫn dự án</h3>
+<p>Một dự án có thể giữ hướng dẫn chỉ áp dụng cho một phần của nó. Node của bạn chỉ đọc chúng từ một dự án nằm trong thư mục bạn đã cấp quyền: <code>.clarkcant/instructions.json</code> chứa tối đa 32 rule, và mỗi tên được include là tệp <code>.clarkcant/instructions/&lt;name&gt;.md</code>.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>{
+  "version": 1,
+  "rules": [
+    {
+      "when": { "path": "src/payments/**", "operation": "write" },
+      "include": ["payments"],
+      "pin": false
+    }
+  ]
+}</code></pre>
+</div>
+<ul>
+  <li><code>when</code> có thể khớp theo <code>path</code>, <code>operation</code>, <code>capability</code>, <code>role</code>, <code>skill</code> và <code>project</code>. <code>operation</code> là <code>read</code>, <code>write</code>, <code>test</code>, <code>deploy</code> hoặc <code>command</code>.</li>
+  <li><code>path</code> là glob tương đối với dự án. <code>**</code> đứng thành một đoạn thì đi qua nhiều thư mục, và mẫu không có <code>/</code> khớp tên tệp ở bất cứ đâu. Chữ hoa thường được gộp trên Windows và macOS, giữ nguyên trên Linux. Một glob dài quá 200 ký tự, có hơn 16 ký tự đại diện hoặc hơn 32 đoạn sẽ làm rule của nó bị bỏ.</li>
+  <li>Rule áp dụng khi những gì công việc chạm tới khớp với nó: tệp và thư mục tin nhắn tham chiếu (tính là đọc), đường dẫn trong các tool call của hội thoại (đường dẫn của tool tệp, thư mục làm việc của lệnh), và với task là các thư mục nó được cấp, thư mục ghi được tính là ghi.</li>
+  <li>Khi một tool call làm rule áp dụng, hướng dẫn được nối vào kết quả của chính call đó; nếu không thì nó vào lượt kế tiếp. Hướng dẫn không ghim được nêu một lần mỗi session. Hướng dẫn ghim (<code>"pin": true</code>) được nêu lại mỗi lượt nó còn áp dụng, nên nó còn sau một phần tóm tắt hay một lần dựng lại session. Task worker nhận các hướng dẫn ứng với quyền được cấp khi bắt đầu.</li>
+  <li>Sau khi phân giải liên kết, dự án phải nằm trong thư mục đã cấp, còn tệp rule, thư mục instructions và từng hướng dẫn phải nằm trong dự án. Liên kết dẫn ra ngoài đều bị bỏ qua.</li>
+</ul>
+<p>Hướng dẫn đến với model dưới dạng dữ liệu của dự án: một tiêu đề nói rằng chúng đến từ tệp <code>.clarkcant</code> của dự án, không phải lời của bạn hay của node, và không cấp quyền gì. Mỗi hướng dẫn được bọc trong một thẻ mang một mã node của bạn tạo một lần cho mỗi session (session được dựng lại hoặc được bàn giao sẽ có mã mới) và nêu một lần, trong chính lời hướng dẫn của node ở đầu session đó, như mã duy nhất đánh dấu hướng dẫn dự án; brief của task worker tự nêu mã của nó. Một hướng dẫn không thể tự đóng khối của nó, và một khối bị chép vào tệp hay đầu ra của công cụ mang mã mà node không nêu cho session đó, trừ khi chính session đã lặp lại mã. Đây là tín hiệu để model đọc, không phải ranh giới được cưỡng chế: chính sách thực thi quyết định một hành động được phép làm gì, và hướng dẫn không cấp quyền gì trong mọi trường hợp. Không có bước bật riêng: hướng dẫn của dự án áp dụng vì bạn đã cấp quyền thư mục của nó, và mọi tác động vẫn đi qua chính sách thực thi. Hướng dẫn được gắn nhãn như mọi khối khác và bị giữ lại khi vượt trần của model. Giới hạn: 8 tên mỗi rule, 4.000 ký tự mỗi hướng dẫn, 6.000 mỗi lượt và tệp rule 64 KB. Tệp không hợp lệ được báo một lần trên stderr (<code>instructions-invalid</code>, chỉ tên thư mục) và không thay đổi gì. <code>CLARKCANT_CONDITIONAL_INSTRUCTIONS=off</code> (mặc định bật) tắt tính năng này.</p>
+
+<h3 id="context-session-policy">Khi nào hội thoại được session mới</h3>
+<p>Một hội thoại giữ một session model cho tới khi nó lỗi, bị dọn hoặc đổi model. <code>CLARKCANT_SESSION_POLICY</code> (mặc định <code>off</code>) quyết định ở mỗi lượt có giữ nó hay không:</p>
+<ul>
+  <li><code>observe</code> ghi một dòng JSON mỗi lượt trên stderr (<code>session-policy</code>) chỉ gồm số đếm, không bao giờ văn bản: tuổi session, thời gian rảnh, số lượt, kích thước ngữ cảnh, token cache, chi phí, độ trễ, tỉ lệ từ mới trong tin nhắn và quyết định nó sẽ đưa ra.</li>
+  <li><code>rebuild</code> thực hiện luôn quyết định đó. Nó không bao giờ dựng lại session ở lượt đầu tiên hay khi đang có lượt chạy, và chỉ dựng lại khi cache của provider đã nguội (rảnh từ 5 phút), ngữ cảnh có ít nhất 20.000 token, và ít nhất 75% từ của tin nhắn không có trong 6 tin nhắn gần nhất của session. Từ 50% tới 75% thì dùng lại session, trừ khi <code>CLARKCANT_CONTEXT_DECIDER=jev</code>; khi đó Jev chỉ được xem số đếm, không bao giờ văn bản, và chỉ một câu trả lời dứt khoát mới được tính.</li>
+</ul>
+<p>Dựng lại tạo một session mới được brief bằng phần tóm tắt đã lập, nêu lại hướng dẫn và tool, và không đụng tới chính hội thoại. Nếu không tạo được session mới, hoặc bước policy bị lỗi, lượt tiếp tục trên session cũ. Tin nhắn gửi trong lúc dựng lại sẽ chờ việc dựng lại xong và vào session mới, và Stop trong lúc dựng lại sẽ bỏ session mới và không gửi gì. Giá trị khác là <code>off</code>. Các ngưỡng là phán đoán từ một mô phỏng chi phí có kịch bản, không phải số đo thực tế.</p>
+
 <h2 id="pages">Đọc tiếp</h2>
 <ul>
   <li><a href="api.html">REST &amp; SSE</a>: mọi route, body và sự kiện stream.</li>
