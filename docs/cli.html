@@ -106,6 +106,32 @@ node packages/widget-cli/src/cli.ts widget pack ./my-widget</code></pre>
 <pre><code>node packages/widget-cli/src/cli.ts widget init ./my-editor --template pure-ui</code></pre>
 </div>
 
+<h2 id="widget-npm">Package and publish a widget on npm</h2>
+<p>When a package has a <code>package.json</code>, <code>clark widget pack</code> builds its npm archive with <code>pnpm pack</code> into <code>dist/&lt;name&gt;-&lt;version&gt;.tgz</code>. It then extracts the archive with the same reader your node uses to install it, and refuses the archive unless it passes the conformance suite on its own, holds the same <code>clarkcant.json</code> and contains nothing credential-shaped, such as <code>.npmrc</code>, <code>.env</code> files, <code>.git-credentials</code>, private keys, <code>node_modules</code> or <code>.git</code>. A <code>files</code> list that leaves out something the widget needs is caught here, not on someone else's machine. <code>clark widget init</code> writes a <code>package.json</code> for every template. A package without one stays a local or git package, and pack builds no archive.</p>
+<p>Pack refuses a <code>package.json</code> that breaks these rules, and names each one:</p>
+<ul>
+  <li><code>name</code> is a valid npm name, and <code>version</code> is the version in <code>clarkcant.json</code>.</li>
+  <li><code>license</code> matches the manifest's <code>publisher.license</code>.</li>
+  <li><code>keywords</code> include <code>clarkcant</code> and one keyword per facet kind, such as <code>clarkcant-widget</code> or <code>clarkcant-service</code>. A Marketplace finds packages by them.</li>
+  <li>An explicit <code>files</code> list, no dependencies, and no <code>preinstall</code>, <code>install</code> or <code>postinstall</code> script. A package ships what it runs.</li>
+  <li>No <code>prepack</code>, <code>prepare</code> or <code>postpack</code> script. Pack runs no package code, so ship the files a script would generate.</li>
+</ul>
+<p>The generated <code>package.json</code> is named after the last part of your package id, and that name may already be taken on npm. Rename it, or use a scope you own such as <code>@you/my-widget</code>, before you publish. Pack needs pnpm (<code>corepack enable pnpm</code>). Adding a <code>package.json</code> to a package you already packed changes its author digest, so bump the version when you add it.</p>
+<p><code>dist/artifact.json</code> records three digests, and each answers one question:</p>
+<ul>
+  <li><code>npm.integrity</code>: are these the bytes the registry serves? It is npm's sha512 of the archive.</li>
+  <li><code>npm.contentDigest</code>: is what your node extracted the package the listing named? Your node computes it after fetching that exact npm version, and refuses the install when it differs.</li>
+  <li><code>authorDigest</code>: did this version's files change since it was packed? Pack refuses to repack a version whose files changed; bump the version instead.</li>
+</ul>
+<p><code>clark widget publish</code> prepares the directory entry and uploads nothing. The entry names the exact npm version and the archive's content digest. The command prints three outcomes separately (prepared: yes; published to npm: no; Marketplace submission: no) and the command that publishes the archive it checked:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>node packages/widget-cli/src/cli.ts widget pack ./my-widget
+node packages/widget-cli/src/cli.ts widget publish ./my-widget
+npm publish ./my-widget/dist/my-widget-0.1.0.tgz</code></pre>
+</div>
+<p>Publish that file rather than running <code>npm publish</code> in the package folder, so the registry serves exactly the bytes the entry names. A Marketplace then lists npm packages that carry the <code>clarkcant</code> keyword. <code>--source local</code> prepares an entry for the package's own folder instead, which needs no npm account.</p>
+
 <h2 id="reference-text-editor">Reference app: a text editor</h2>
 <p><code>examples/reference-apps/text-editor</code> is a whole widget built only on the public widget contracts: one isolated UI facet, with no service, no permissions and no requested capabilities. You open a text file, edit it, save it and ask Clark to rewrite a selection, and the widget never learns where the file lives.</p>
 <ul>
