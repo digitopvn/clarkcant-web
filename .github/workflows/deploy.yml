@@ -30,6 +30,9 @@ jobs:
       - name: Assemble the published files
         run: node scripts/prepare-site.mjs
 
+      - name: Enable the repository package manager
+        run: corepack enable
+
       - name: Publish to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
