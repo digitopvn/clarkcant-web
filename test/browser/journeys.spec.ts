@@ -41,4 +41,3 @@ test('uploaded images become public only when published; CLI uses scoped API acc
  const result=JSON.parse(execFileSync(process.execPath,['scripts/blog-cli.mjs','get_article','--url',origin],{input:JSON.stringify({id:article.id}),encoding:'utf8',env:{...process.env,CLARKCANT_BLOG_TOKEN:credentials.token}}));expect(result.id).toBe(article.id);
  const denied=await page.request.post('/api/blog/publish_article',{headers:{authorization:`Bearer ${credentials.token}`},data:{id:article.id,revision:1,expectedRevision:1}});expect(denied.status()).toBe(403);
 });
-
