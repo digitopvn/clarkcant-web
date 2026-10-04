@@ -250,6 +250,15 @@ curl -s -X POST "$CLARKCANT_URL/conversations/&lt;conversationId&gt;/messages" \
 </div>
 <p class="note"><strong>Keep the token private.</strong> It gives full access to your Clark. The node binds to loopback by default; <code>--allow-public-bind</code> exposes it and needs TLS in front. Sign-in with OAuth is not available: the bearer token is the only credential.</p>
 
+<h2 id="context-planner">How Clark picks context</h2>
+<p>These environment variables on the node choose what context Clark sends the model with each message:</p>
+<ul>
+  <li><code>CLARKCANT_CONTEXT_PLANNER</code> (default on): On, the memory brief and a fresh session's recap focus on the message being answered. Earlier matching messages from the conversation reach the model as labelled data, never as instructions. Background runs and task workers you started can read the same context on demand. <code>off</code> restores the fixed recap (newest 12 messages) and memory brief (newest 12 notes), and stops background runs and task workers from receiving retrieved context.</li>
+  <li><code>CLARKCANT_CONTEXT_DECIDER</code> (default <code>rank</code>): <code>jev</code> lets the Jev selector reorder the top 8 matches when their ranking is close and its answer could change what is sent. Under progressive disclosure, it can also pick one tool family for a first message that names none. A failure or timeout keeps the deterministic order. Any other value is <code>rank</code>.</li>
+  <li><code>CLARKCANT_TOOL_DISCLOSURE</code> (default <code>all</code>): <code>progressive</code> offers the core tools plus the families the conversation's messages name, growing within a session. It stays off because an offline, in-sample estimate found it cost about 7% more once prompt-cache rewrites were counted. Any other value is <code>all</code>.</li>
+</ul>
+<p class="note"><strong>What goes to the Jev provider</strong> (only with <code>CLARKCANT_CONTEXT_DECIDER=jev</code>, and only when it is asked): the message being answered, redacted, at most 300 characters (400 for a tool-family choice), plus each candidate memory note or earlier message, redacted, at most 200 characters. Nothing else leaves the node, and Jev grants nothing.</p>
+
 <h2 id="pages">Where to next</h2>
 <ul>
   <li><a href="api.html">REST &amp; SSE</a>: every route, request body and stream event.</li>
