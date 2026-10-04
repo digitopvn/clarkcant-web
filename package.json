@@ -1,14 +1,37 @@
 {
   "name": "clarkcant-website",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "The official ClarkCant website. Static, no build step.",
-  "license": "Apache-2.0",
   "type": "module",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@12.4.2",
   "scripts": {
-    "start": "node scripts/serve.mjs",
-    "og": "\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless=new --hide-scrollbars --use-angle=swiftshader --enable-unsafe-swiftshader --window-size=1200,630 --virtual-time-budget=4000 --screenshot=assets/img/og-image.png http://127.0.0.1:4321/scripts/og-card.html",
-    "build": "rm -rf dist && mkdir dist && cp -R index.html 404.html assets docs vi dist/ && find dist -name .DS_Store -delete",
-    "deploy": "npm run build && CLOUDFLARE_ACCOUNT_ID=009dc0fcd0da3e503fbf38eb2b586e4b wrangler pages deploy dist --project-name clarkcant --branch main --commit-dirty=true"
+    "prepare:site": "pnpm build:widgets && node scripts/prepare-site.mjs",
+    "dev": "pnpm prepare:site && astro dev",
+    "start": "pnpm dev",
+    "build": "pnpm prepare:site && astro build",
+    "typecheck": "astro check",
+    "test": "node --experimental-strip-types --test test/*.test.ts",
+    "verify": "pnpm typecheck && pnpm test && pnpm build",
+    "deploy": "pnpm build && wrangler deploy --config wrangler.production.jsonc",
+    "db:local": "wrangler d1 migrations apply clarkcant-blog --local",
+    "cli": "node scripts/blog-cli.mjs",
+    "build:widgets": "node scripts/build-widgets.mjs",
+    "test:e2e": "playwright test",
+    "build:static": "node scripts/prepare-site.mjs"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "14.3.3",
+    "@modelcontextprotocol/sdk": "1.32.0",
+    "astro": "7.3.5",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.9",
+    "@cloudflare/workers-types": "5.20261004.1",
+    "@playwright/test": "1.63.0",
+    "esbuild": "0.28.2",
+    "typescript": "5.9.3",
+    "wrangler": "4.147.0"
   }
 }

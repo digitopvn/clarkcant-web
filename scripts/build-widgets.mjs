@@ -1,0 +1,15 @@
+import { build } from 'esbuild';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+const source=resolve(process.env.CLARKCANT_SOURCE ?? '../clarkcant');
+await mkdir('assets/blog',{recursive:true});await mkdir('src/generated',{recursive:true});
+await build({entryPoints:[resolve(source,'packages/conversation-client/src/public-widget.tsx')],bundle:true,format:'esm',platform:'browser',target:'es2022',minify:true,outfile:'assets/blog/widgets.js',define:{'process.env.NODE_ENV':'"production"'},jsx:'automatic'});
+const entry=`import { libraryEntries, validateProps } from ${JSON.stringify(resolve(source,'packages/widget-catalog/src/index.ts').replaceAll('\\','/'))};
+export const widgetCatalog=libraryEntries().map(e=>({id:e.definition.id,version:e.definition.version,propsSchema:e.definition.propsSchema,description:e.definition.semanticDescription}));
+export function validateWidget(input){const entry=libraryEntries().find(e=>e.definition.id===input.definitionId && e.definition.version===input.version);if(!entry)return 'Unknown widget or version';const result=validateProps(entry.definition,input.props);return result.ok?null:result.problems.join('; ');}`;
+await build({stdin:{contents:entry,resolveDir:source,sourcefile:'blog-widget-contract.ts',loader:'ts'},bundle:true,format:'esm',platform:'neutral',target:'es2022',minify:true,outfile:'src/generated/widget-contract.mjs'});
+await writeFile('src/generated/widget-contract.d.mts','export const widgetCatalog: {id:string;version:string;propsSchema:Record<string,unknown>;description:string}[];\nexport function validateWidget(input:{definitionId:string;version:string;props:Record<string,unknown>}):string|null;\n');
+const {widgetCatalog}=await import(pathToFileURL(resolve('src/generated/widget-contract.mjs')).href);
+await writeFile('assets/blog/widget-catalog.json',JSON.stringify(widgetCatalog));
+console.log(`Built shared widget host and ${widgetCatalog.length} canonical definitions from ${source}`);

@@ -28,12 +28,12 @@ jobs:
           node-version: 22
 
       - name: Assemble the published files
-        run: npm run build
+        run: node scripts/prepare-site.mjs
 
       - name: Publish to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: 009dc0fcd0da3e503fbf38eb2b586e4b
-          command: pages deploy dist --project-name clarkcant --branch main --commit-hash ${{ github.sha }}
+          command: pages deploy public --project-name clarkcant --branch main --commit-hash ${{ github.sha }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}

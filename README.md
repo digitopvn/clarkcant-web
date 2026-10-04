@@ -2,17 +2,99 @@
 
 The official site for [ClarkCant](https://github.com/digitopvn/clarkcant), the open-source AI agent you just talk to.
 
-Static HTML, CSS and ES modules. No dependencies, no build step.
+The landing page and existing docs remain static. The technical blog uses Astro
+on a scoped Cloudflare Worker, D1 revisions/auth/surveys and R2 media. Reader and
+authoring docs: [English](docs/blog.html) · [Tiếng Việt](vi/docs/blog.html).
 
 ```bash
-npm start          # http://127.0.0.1:4321 (PORT=… to change)
-npm run deploy     # copy public files to dist/ and publish to Cloudflare Pages (project: clarkcant)
-npm run og         # re-render assets/img/og-image.png from scripts/og-card.html (needs npm start + Chrome)
+corepack pnpm install --frozen-lockfile
+# Keep the pinned ClarkCant checkout in ../clarkcant, or set CLARKCANT_SOURCE.
+corepack pnpm build:widgets
+corepack pnpm db:local
+corepack pnpm dev       # http://127.0.0.1:4322
+corepack pnpm verify
 ```
 
-Every push to `main` deploys automatically through `.github/workflows/deploy.yml` (needs the repository secret `CLOUDFLARE_API_TOKEN` with "Cloudflare Pages: Edit"); `npm run deploy` stays available for a manual publish.
+Use Node 22.19+ and Corepack pnpm. Widget builds bundle the canonical renderer
+from the pinned ClarkCant checkout (see CI), not a copied renderer. Production
+configuration is `wrangler.production.jsonc`; local data uses `wrangler.jsonc`.
+Stop a running Wrangler server before rebuilding its output on Windows.
 
-Live at https://clarkcant.cc (also https://clarkcant.pages.dev). Only `index.html`, `404.html`, `assets/`, `docs/` and `vi/` are published (see the `build` script). `404.html` uses root-absolute paths, so serve the site from a domain root; if the domain changes, update `og:image` in `index.html`.
+The existing Pages deploy still owns the landing page/docs. The blog Worker
+owns only the routes listed in its production configuration. Do not deploy the
+server directory to Pages. `build:static` produces `public/`; the blog build
+produces `dist/client` and `dist/server`.
+
+## Deployment and credentials
+
+Create a GitHub OAuth App with homepage `https://clarkcant.cc/blog/` and callback
+`https://clarkcant.cc/auth/callback`. Store its two credentials through Wrangler's
+hidden input; never put a secret in a command argument, commit or chat:
+
+```sh
+corepack pnpm exec wrangler secret put GITHUB_CLIENT_ID --config wrangler.production.jsonc
+corepack pnpm exec wrangler secret put GITHUB_CLIENT_SECRET --config wrangler.production.jsonc
+```
+
+`OWNER_GITHUB_ID` is the numeric GitHub ID of the bootstrap owner. Other members
+are invited in Studio. Local development can use a separate OAuth App pointing
+at `http://127.0.0.1:4322/auth/callback` and ignored `.dev.vars` bindings.
+Without OAuth configuration, login fails closed with 503; public reading works.
+
+Before migrations, export D1 to a private backup (Wrangler may print a signed
+download link; do not share logs). Applied migrations are immutable. Then:
+
+```sh
+corepack pnpm exec wrangler d1 export clarkcant-blog --remote --config wrangler.production.jsonc --output .wrangler/backup.sql
+corepack pnpm exec wrangler d1 migrations apply clarkcant-blog --remote --config wrangler.production.jsonc
+corepack pnpm deploy
+```
+
+The optional blog deployment CI needs a separate `CLOUDFLARE_BLOG_API_TOKEN` with
+Worker script/routes, D1 and R2 permissions. The existing Pages token is not
+assumed to have those rights. Migration backup/application is an explicit
+operator prerequisite, not an automatic destructive pipeline step. Roll back
+code using Cloudflare Worker versions; restore an article through History.
+Never import browser test fixtures into production.
+
+For browser tests, build, run `node test/setup-browser.mjs`, apply its ignored
+`test-results/setup.sql` to **local** D1, and start Wrangler with
+`--config dist/server/wrangler.json --persist-to <checkout>/.wrangler/state --port 4322`.
+Run `corepack pnpm test:e2e`. Tests use Edge locally or Chromium in CI. The
+temporary credentials are ignored and expire after two hours.
+
+## Vận hành (Tiếng Việt)
+
+Landing page và tài liệu hiện có vẫn là nội dung tĩnh trên Pages. Blog dùng
+Astro/Worker, D1 cho phiên bản, quyền truy cập và khảo sát, R2 cho media. Chỉ các
+route trong `wrangler.production.jsonc` chuyển vào Worker. Không đưa thư mục
+server lên Pages. Dùng Node 22.19+, Corepack pnpm và checkout ClarkCant tại commit
+đã ghim trong CI ở `../clarkcant` hoặc biến `CLARKCANT_SOURCE`; widget dùng renderer
+chuẩn, không sao chép. Dừng Wrangler trước khi build lại trên Windows.
+
+Chạy lần lượt các lệnh install, build:widgets, db:local, dev và verify phía trên.
+Tạo GitHub OAuth App với homepage `https://clarkcant.cc/blog/`, callback
+`https://clarkcant.cc/auth/callback`. Lưu Client ID và Client Secret bằng hai lệnh
+`wrangler secret put` phía trên qua input ẩn; không ghi secret vào lệnh, commit
+hay chat. `OWNER_GITHUB_ID` là ID số của chủ quản trị; mời thành viên khác trong
+Studio. Local dùng app riêng với callback `http://127.0.0.1:4322/auth/callback`
+và `.dev.vars` đã bị bỏ qua bởi Git. Thiếu cấu hình OAuth thì đăng nhập trả 503,
+nhưng vẫn đọc được bài công khai.
+
+Trước migration, export D1 vào bản sao riêng tư; không chia sẻ log chứa URL tải
+có chữ ký. Migration đã áp dụng là bất biến. Sau đó chạy migration và deploy như
+trên. CI blog tùy chọn cần `CLOUDFLARE_BLOG_API_TOKEN` có quyền Worker/routes, D1,
+R2; không giả định token Pages có quyền đó. Người vận hành sao lưu và áp dụng
+migration trước khi triển khai. Rollback mã bằng phiên bản Worker; khôi phục bài
+qua History. Tuyệt đối không nhập dữ liệu kiểm thử vào production.
+
+Kiểm thử trình duyệt: build, chạy `node test/setup-browser.mjs`, áp dụng tệp
+`test-results/setup.sql` vào D1 **local**, khởi động Wrangler bằng config trong
+`dist/server` với `--persist-to <checkout>/.wrangler/state --port 4322`, rồi chạy
+`corepack pnpm test:e2e`. Edge được dùng cục bộ, Chromium trên CI. Thông tin xác
+thực kiểm thử bị bỏ qua bởi Git và hết hạn sau hai giờ. Quy trình OAuth thật với
+ChatGPT/Claude cần kiểm chứng riêng sau khi cấu hình app; kiểm thử SDK không thay
+thế bước đó.
 
 ## Layout
 

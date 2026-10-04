@@ -1,0 +1,12 @@
+CREATE TABLE members (subject TEXT PRIMARY KEY, name TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('owner','editor','publisher')), active INTEGER NOT NULL DEFAULT 1);
+CREATE TABLE articles (id TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, revision INTEGER NOT NULL, published_revision INTEGER, updated_at TEXT NOT NULL);
+CREATE TABLE revisions (article_id TEXT NOT NULL REFERENCES articles(id), revision INTEGER NOT NULL, document TEXT NOT NULL, actor TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY(article_id, revision));
+CREATE TABLE receipts (actor TEXT NOT NULL, key TEXT NOT NULL, fingerprint TEXT NOT NULL, response TEXT NOT NULL, PRIMARY KEY(actor,key));
+CREATE TABLE tokens (hash TEXT PRIMARY KEY, subject TEXT NOT NULL REFERENCES members(subject), scopes TEXT NOT NULL, expires_at INTEGER NOT NULL, kind TEXT NOT NULL, audience TEXT NOT NULL);
+CREATE TABLE oauth_clients (id TEXT PRIMARY KEY, name TEXT NOT NULL, redirect_uris TEXT NOT NULL);
+CREATE TABLE oauth_codes (hash TEXT PRIMARY KEY, client_id TEXT NOT NULL, redirect_uri TEXT NOT NULL, challenge TEXT NOT NULL, subject TEXT NOT NULL, scopes TEXT NOT NULL, resource TEXT NOT NULL, expires_at INTEGER NOT NULL);
+CREATE TABLE login_states (hash TEXT PRIMARY KEY, return_to TEXT NOT NULL, expires_at INTEGER NOT NULL);
+CREATE TABLE surveys (id TEXT PRIMARY KEY, article_id TEXT NOT NULL, revision INTEGER NOT NULL, block_id TEXT NOT NULL, answer TEXT NOT NULL, created_at TEXT NOT NULL, visitor_hash TEXT NOT NULL);
+CREATE INDEX survey_lookup ON surveys(article_id,block_id,created_at);
+CREATE TABLE audit (id TEXT PRIMARY KEY, subject TEXT NOT NULL, operation TEXT NOT NULL, article_id TEXT, created_at TEXT NOT NULL);
+CREATE TABLE assets (id TEXT PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL, size INTEGER NOT NULL, owner TEXT NOT NULL, created_at TEXT NOT NULL);

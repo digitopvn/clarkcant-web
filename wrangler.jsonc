@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "clarkcant-blog",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": "./dist", "binding": "ASSETS" },
+  "d1_databases": [{ "binding": "DB", "database_name": "clarkcant-blog", "database_id": "local-blog", "migrations_dir": "migrations" }],
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "clarkcant-blog-media" }],
+  "vars": { "SITE_URL": "http://127.0.0.1:4322" }
+}

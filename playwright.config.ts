@@ -1,0 +1,2 @@
+import { defineConfig, devices } from '@playwright/test';
+export default defineConfig({testDir:'./test/browser',fullyParallel:false,workers:1,retries:0,reporter:'list',use:{baseURL:'http://127.0.0.1:4322',...devices['Desktop Chrome'],channel:process.env.CI?undefined:'msedge',trace:'retain-on-failure'},outputDir:'test-results/browser',webServer:process.env.CI?{command:`pnpm exec wrangler dev --config dist/server/wrangler.json --persist-to "${process.cwd()}/.wrangler/state" --port 4322 --ip 127.0.0.1`,url:'http://127.0.0.1:4322/blog/',reuseExistingServer:false}:undefined});
