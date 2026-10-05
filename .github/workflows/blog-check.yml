@@ -29,11 +29,11 @@ jobs:
       - run: corepack pnpm verify
       - run: corepack pnpm exec playwright install --with-deps chromium
       - run: |
-          timeout 60 node_modules/.bin/cf d1 migrations apply 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state < /dev/null & P=$!
-          sleep 25; echo "--- after 25s"; ps -ef --forest | grep -v grep | grep -A8 -i "cf d1\|workerd" | head -40
-          ls -la ~/.config/cloudflare 2>/dev/null; cat ~/.config/cloudflare/*.json 2>/dev/null | head -20
-          wait $P; echo "exit=$?"
-          rm -rf .wrangler/state
-          CF_SEND_TELEMETRY=false timeout 60 node_modules/.bin/cf d1 migrations apply 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state < /dev/null; echo "exit-notelemetry=$?"
+          cat > /tmp/handles.cjs <<'JS'
+          setTimeout(()=>{const h=process._getActiveHandles().map(x=>{const n=x.constructor?.name;return n==='Socket'||n==='TLSSocket'?n+' '+(x.remoteAddress||'')+':'+(x.remotePort||'')+' '+(x.servername||''):n});console.error('HANDLES',JSON.stringify(h),'REQS',JSON.stringify(process._getActiveRequests().map(r=>r.constructor?.name)))},15000).unref();
+          JS
+          NODE_OPTIONS="--require /tmp/handles.cjs" timeout 40 node_modules/.bin/cf d1 migrations list 00000000-0000-4000-8000-000000000000 --local --persist-to /tmp/s1 < /dev/null || echo "exit-default=$?"
+          CF_SEND_TELEMETRY=false timeout 40 node_modules/.bin/cf d1 migrations list 00000000-0000-4000-8000-000000000000 --local --persist-to /tmp/s2 < /dev/null && echo "exit-notelemetry=0" || echo "exit-notelemetry=$?"
+          corepack pnpm db:local
       - run: corepack pnpm db:seed:browser
       - run: corepack pnpm test:e2e
