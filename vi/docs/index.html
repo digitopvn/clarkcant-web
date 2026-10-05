@@ -87,6 +87,18 @@ node apps/cli/src/main.ts ask "how do I connect Cursor to you?"</code></pre>
 <p><strong>Một token, một gateway, cùng một ngữ nghĩa ở mọi nơi.</strong> Mọi giao diện đều do cùng một runtime node phục vụ, cùng origin, cùng bearer token. Không có tầng xử lý nghiệp vụ thứ hai: một tool MCP, một request WebSocket hay một lệnh CLI đều đi tới cùng một handler của HTTP gateway, nên chúng hoạt động y hệt lệnh REST bên dưới.</p>
 <p class="note"><strong>Phê duyệt (approval) cố ý không có trên MCP.</strong> Quyết định phê duyệt là việc của con người. Một client AI không được phép tự phê duyệt hành động cần kiểm soát của chính nó, nên không có tool MCP nào cho việc này.</p>
 
+<h2 id="slash-commands">Lệnh gạch chéo</h2>
+<p>Gõ <kbd>/</kbd> trong ô soạn tin để xem các lệnh, xếp trước các skill. Clark trả lời mỗi lệnh ngay trong cuộc trò chuyện, bằng một tin nhắn kèm thẻ nhỏ để bạn thao tác tại chỗ, nên không lệnh nào mở màn hình riêng.</p>
+<ul>
+  <li><code>/new</code> bắt đầu cuộc trò chuyện mới. Cuộc hiện tại vẫn được giữ, mở lại bằng <code>/sessions</code>.</li>
+  <li><code>/sessions</code> liệt kê việc nền và các cuộc trò chuyện trước, mỗi mục có nút <strong>Mở</strong>. Cuộc trò chuyện Clark vẫn đang trả lời được đánh dấu.</li>
+  <li><code>/login</code> đăng nhập AI provider ngay trong thẻ, bằng trang tài khoản của provider, mã thiết bị hoặc API key, tuỳ provider hỗ trợ cách nào. Những gì bạn nhập đi thẳng tới runtime của model; nó không bao giờ hiện trong cuộc trò chuyện và không lần đọc nào sau đó trả lại nó.</li>
+  <li><code>/logout</code> đăng xuất khỏi provider mà Clark đã lưu khoá. Nếu khoá lấy từ môi trường, như <code>.env</code> hoặc shell, thẻ sẽ nói rõ và bạn gỡ nó ở đó.</li>
+  <li><code>/thinking</code> chọn mức suy nghĩ cho các lượt sau, từ danh sách, hoặc gõ trực tiếp: <code>/thinking high</code>, <code>/thinking default</code>. Đây cũng là thiết lập Cài đặt → AI &amp; Định tuyến → Mức suy nghĩ.</li>
+  <li><code>/background &lt;yêu cầu&gt;</code> chạy yêu cầu thành việc nền bên cạnh cuộc trò chuyện và báo kết quả trong đó.</li>
+</ul>
+<p>Lệnh gõ ở giữa câu chỉ là chữ thường. Lệnh không được gửi tới model. Xem <a href="api.html#provider-sign-in">các route đăng nhập provider</a>.</p>
+
 <h2 id="inbox">Hộp thư và thông báo</h2>
 <p>Mở hộp thư từ huy hiệu ở đầu ứng dụng, bằng bàn phím, hoặc yêu cầu Clark bằng chữ hay giọng nói: “mở hộp thư”. Hộp thư tập hợp yêu cầu duyệt lệnh, quyền của gói, yêu cầu duyệt do task đang chạy tạo ra, câu hỏi chưa trả lời và thông báo đã lưu về công việc nền, yêu cầu hết hạn và bản cập nhật. Công cụ <code>control_app</code> của Clark cũng mở cùng hộp thư này.</p>
 <p>Duyệt yêu cầu của task đang chạy cho phép node chạy lại task; nếu node chưa nhận được lượt chạy, Clark nói rõ chưa có gì chạy và bạn có thể yêu cầu lại. Từ chối hoặc hết hạn sẽ kết thúc task. Quyết định đó thuộc về bạn; các giao diện máy từ chối thao tác này. Xem <a href="api.html#waiting-approvals">quyết định yêu cầu duyệt của task</a>.</p>
@@ -340,6 +352,8 @@ CLOUDFLARE_API_TOKEN=&lt;token&gt;             # allowed to run Workers AI</code
 
 <h3 id="model-switch">Khi bạn đổi model</h3>
 <p>Đổi model hoặc mức thinking không bao giờ cắt ngang câu trả lời Clark đang viết: thay đổi có hiệu lực từ tin nhắn tiếp theo của bạn. Thường thì tin nhắn đó tiếp tục trong cùng session trên model mới, session vẫn giữ mọi thứ nó đang có, nên không cần brief lại gì. Session chỉ được giữ khi model mới được nhận mọi mức dữ liệu mà bất kỳ model nào từng chạy session đó được nhận, và không có gì bị bỏ khỏi session mà model mới lại được nhận. Ngược lại, sau khi provider đã từ chối một lượt trong session đó, khi bạn quay về mức thinking mặc định của một model, hoặc khi việc chuyển session thất bại, tin nhắn tiếp theo của bạn bắt đầu một session mới trên model mới, được brief bằng phần tóm tắt cuộc trò chuyện đã thu hẹp theo những gì model đó được nhận. Clark không bao giờ trả lời bằng model cũ thay vào đó. Nếu đổi model thất bại, lượt đó báo lỗi bằng ngôn ngữ của bạn và cuộc trò chuyện được giữ nguyên, ví dụ: “Không chuyển được cuộc trò chuyện này sang {provider/model}: {lý do}. Tin nhắn của bạn đã được lưu và cuộc trò chuyện vẫn giữ nguyên. Hãy thử lại, hoặc chọn model khác.” Đường dẫn tệp cục bộ được xoá khỏi lý do. Nếu việc chuẩn bị trả lời lâu hơn thời gian cho phép của lượt, lượt đó dừng với “Không chuẩn bị xong để trả lời trong {N} giây, nên lượt này đã dừng. Tin nhắn của bạn đã được lưu. Hãy thử lại, hoặc chọn model khác nếu lỗi này lặp lại.”</p>
+<h3 id="turn-limit">Một lượt được chạy bao lâu</h3>
+<p>Mặc định một lượt không giới hạn thời gian: nó chạy đến khi xong, và bạn có thể bấm Dừng bất cứ lúc nào. Muốn giới hạn, chọn 5, 15, 30 hoặc 60 phút trong Cài đặt → AI &amp; Định tuyến → Mức suy nghĩ và thời gian. Người vận hành cũng có thể đặt <code>CC_MODEL_MAX_WALL_CLOCK_MS</code>. Lượt chạm giới hạn sẽ dừng và báo số phút; tin nhắn của bạn được giữ.</p>
 
 <h2 id="pages">Đọc tiếp</h2>
 <ul>

@@ -86,6 +86,18 @@ node apps/cli/src/main.ts ask "how do I connect Cursor to you?"</code></pre>
 <p><strong>One token, one gateway, the same semantics everywhere.</strong> Every surface is served by the same runtime node, on the same origin, with the same bearer token. There is no second business-logic stack: an MCP tool, a WebSocket request and a CLI command all end up at the same HTTP gateway handler, so they behave exactly like the REST call underneath.</p>
 <p class="note"><strong>Approvals are deliberately not exposed to MCP.</strong> Deciding an approval is a human surface. An AI client must not be able to approve its own guarded action, so there is no MCP tool for it.</p>
 
+<h2 id="slash-commands">Slash commands</h2>
+<p>Type <kbd>/</kbd> in the composer to see the commands, listed ahead of skills. Each one is answered by Clark in the conversation, as a message with a small card you act on right there, so nothing opens a screen of its own.</p>
+<ul>
+  <li><code>/new</code> starts a new conversation. The current one is kept, and you can reopen it with <code>/sessions</code>.</li>
+  <li><code>/sessions</code> lists background work and your earlier conversations, each with <strong>Open</strong>. A conversation Clark is still answering is marked.</li>
+  <li><code>/login</code> signs in to an AI provider from the card, using the provider's account page, a device code or an API key, whichever the provider offers. What you type goes straight to the model runtime; it never appears in the conversation and no later read returns it.</li>
+  <li><code>/logout</code> signs out of a provider whose key Clark stored. If a key comes from the environment, such as <code>.env</code> or the shell, the card says so and you remove it there.</li>
+  <li><code>/thinking</code> chooses how hard the next turns think, from a list, or directly: <code>/thinking high</code>, <code>/thinking default</code>. It is the same setting as Settings → AI &amp; Routing → Thinking level.</li>
+  <li><code>/background &lt;request&gt;</code> runs the request as background work beside the conversation and reports back in it.</li>
+</ul>
+<p>A command typed in the middle of a sentence is just text. Commands are not sent to the model. See <a href="api.html#provider-sign-in">provider sign-in routes</a>.</p>
+
 <h2 id="inbox">Inbox and notifications</h2>
 <p>Open the inbox from its header badge, with the keyboard, or by asking Clark in text or voice: “open the inbox”. It brings together command approvals, package permissions, approvals a running task raised, open questions and stored notices about background work, expired requests and available updates. Clark's <code>control_app</code> tool reaches the same inbox.</p>
 <p>Granting an approval raised by a running task lets the node run it again; if the node cannot accept the run, Clark says nothing has run and you can ask again. Denial or expiry ends the task. That decision belongs to you; machine interfaces refuse it. See <a href="api.html#waiting-approvals">task approval decisions</a>.</p>
@@ -339,6 +351,8 @@ CLOUDFLARE_API_TOKEN=&lt;token&gt;             # allowed to run Workers AI</code
 
 <h3 id="model-switch">When you change the model</h3>
 <p>Changing the model or the thinking level never cuts off a reply Clark is writing: the change applies from your next message. Usually that message carries on in the same session on the new model, which keeps everything the session already holds, so nothing is briefed again. The session is kept only when the new model may receive every data class any model the session has run could, and nothing was left out of the session that the new model may receive. Otherwise, after a provider has refused a turn in that session, when you go back to a model's default thinking level, or when moving the session fails, your next message starts a new session on the new model, briefed with a recap of the conversation narrowed to what that model may receive. Clark never answers on the previous model instead. If the switch fails, the turn says so in your language and the conversation is left as it was, for example: “Could not switch this conversation to {provider/model}: {reason}. Your message is saved and the conversation is unchanged. Retry, or choose another model.” Local file paths are removed from the reason. If getting ready to answer takes longer than the turn's time budget, the turn stops with “Could not get ready to answer within {N} s, so this turn was stopped. Your message is saved. Retry, or choose another model if this keeps happening.”</p>
+<h3 id="turn-limit">How long a turn may run</h3>
+<p>By default a turn has no time limit: it runs until it is done, and you can press Stop at any time. To cap it, choose 5, 15, 30 or 60 minutes in Settings → AI &amp; Routing → Thinking and time. An operator can also set <code>CC_MODEL_MAX_WALL_CLOCK_MS</code>. A turn that reaches its cap stops and says so in minutes; your message is kept.</p>
 
 <h2 id="pages">Where to next</h2>
 <ul>
