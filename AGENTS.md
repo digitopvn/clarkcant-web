@@ -24,8 +24,11 @@ prints the root help. Check that before you rely on one.
 | Set a Worker secret | `cf workers secrets update <NAME> --worker clarkcant-blog --type secret_text --text "$VALUE"` (read `VALUE` with `read -rs`) |
 | List Worker secrets | `cf workers secrets list --worker clarkcant-blog` |
 
-D1 commands take the database ID, not its name. Production's ID is in
-`wrangler.production.jsonc`. The local ID is the fixed UUID
+D1 commands take the database ID, not its name. Production and staging IDs are in
+`wrangler.production.jsonc` (staging under `env.staging`).
+
+Deploys run from CI: `main` goes to production, `dev` to staging
+(`staging.clarkcant.cc`, Worker `clarkcant-blog-staging`). Ship through `dev` first. The local ID is the fixed UUID
 `00000000-0000-4000-8000-000000000000` in `wrangler.jsonc`. Local commands pass
 `--local --persist-to .wrangler/state`, the same state the Astro adapter and
 `wrangler dev` read. Without that flag, `cf` writes to `~/.config/cloudflare/state`
@@ -44,7 +47,8 @@ These are the only steps that use Wrangler. Each one stays until `cf` can do it.
 Re-check them when you upgrade `cf` or `@astrojs/cloudflare`, and move each one to
 `cf` once it works.
 
-- **Blog Worker deploy** (`pnpm deploy`, `.github/workflows/deploy-blog.yml`).
+- **Blog Worker upload** (`pnpm deploy`, the last step of the `blog` job in
+  `.github/workflows/deploy.yml`).
   `cf deploy` needs the Build Output Specification in `.cloudflare/output/v0`, and the
   Astro adapter does not emit it. Forcing it through `@cloudflare/vite-plugin` fails,
   because the adapter uses `experimental.prerenderWorker` and that is not yet
@@ -54,7 +58,7 @@ Re-check them when you upgrade `cf` or `@astrojs/cloudflare`, and move each one 
   dist/server/wrangler.json` in `playwright.config.ts`). `cf dev` runs the
   framework's dev server and does not serve the build output, so it cannot stand
   in here.
-- **Landing and docs Pages deploy** (`.github/workflows/deploy.yml`, through
+- **Landing and docs Pages deploy** (the `site` job in `.github/workflows/deploy.yml`, through
   `cloudflare/wrangler-action`). `cf pages deploy` refuses legacy Pages projects and
   points to `cf deploy` on Workers. Moving off it means migrating the `clarkcant`
   Pages project to Workers static assets, which is a separate change.
