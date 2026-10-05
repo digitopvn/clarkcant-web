@@ -254,6 +254,25 @@ curl -s -X POST "$CLARKCANT_URL/conversations/&lt;conversationId&gt;/messages" \
 </ul>
 <p class="note"><strong>What goes to the Jev provider</strong> (only with <code>CLARKCANT_CONTEXT_DECIDER=jev</code>, and only when it is asked): the message being answered, redacted, at most 300 characters (400 for a tool-family choice), plus each candidate memory note or earlier message, redacted, at most 200 characters. Nothing else leaves the node, and Jev grants nothing.</p>
 
+<h3 id="decision-provider">Choosing the decision provider</h3>
+<p>Jev, from TypeSafe, answers your node's selector by default. An operator can select Cloudflare Clef on Workers AI instead. Clark's policy (what is offered, what is redacted, the thresholds, the time budget and every fallback) is the same whichever provider answers, and both receive the same redacted request; only the endpoint, the credential and the pinned model differ. Changing provider changes who receives that request, so it is a data-sharing decision as well as a technical one. These environment variables on the node choose it:</p>
+<ul>
+  <li><code>CLARKCANT_DECISION_PROVIDER</code> (default <code>typesafe</code>): <code>typesafe</code> (Jev) or <code>cloudflare</code> (Clef). Any other value refuses every decision call rather than falling back to TypeSafe.</li>
+  <li><code>CLARKCANT_DECISION_MODEL</code>: the exact model id. With Cloudflare it is required and must be <code>clef</code> or <code>clef-flash</code>. With TypeSafe it wins over <code>CLARKCANT_JEV_MODEL</code> (default <code>jev-1.13.0</code>) when set, and a Cloudflare model id there is refused before any call.</li>
+  <li><code>TYPESAFE_API_KEY</code>: the TypeSafe credential. The key typed into the settings card is used when the environment has none.</li>
+  <li><code>CLOUDFLARE_ACCOUNT_ID</code>: Cloudflare only, 32 hexadecimal characters. The endpoint is built from it and cannot be overridden.</li>
+  <li><code>CLOUDFLARE_API_TOKEN</code>: Cloudflare only, a token allowed to run Workers AI, read from the environment only. The TypeSafe key is never used in its place, and it is kept out of the commands the model runs, like other provider keys.</li>
+</ul>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>CLARKCANT_DECISION_PROVIDER=cloudflare
+CLARKCANT_DECISION_MODEL=clef            # or clef-flash
+CLOUDFLARE_ACCOUNT_ID=&lt;account-id&gt;       # 32 hexadecimal characters
+CLOUDFLARE_API_TOKEN=&lt;token&gt;             # allowed to run Workers AI</code></pre>
+</div>
+<p><strong>When the provider is unavailable, your node falls back and says so.</strong> A missing credential, a malformed setting, <code>CLARKCANT_JEV_LOCAL_ONLY=1</code> (which refuses both providers), a secret-shaped value left in the request, a timeout, an error or an answer it cannot trust all end the same way: the call is reported unavailable with its reason, it is not retried, and the work goes on along the deterministic path. Composed surfaces compile without the selector, search ranks with BM25 and context keeps its ranked order. At startup the node prints one line about the selector, such as <code>selector: clef-flash pinned on cloudflare, 4000 ms per turn</code> or <code>selector: disabled (no credential or local-only); composed surfaces use the deterministic path</code>. Telemetry lines and stored decision records name the provider only when it is not TypeSafe. See the <a href="https://github.com/digitopvn/clarkcant/blob/main/docs/mini-app/jev-configuration.md" rel="noopener">selector configuration</a>.</p>
+<p class="note"><strong>Not yet verified live.</strong> Clef has not been checked against the live Workers AI service: the exact model id it returns and its response envelope follow Cloudflare's general documentation. Cloudflare's benchmarks of Clef against Jev are the vendor's numbers on the vendor's workload, which is why TypeSafe stays the default.</p>
+
 <h3 id="context-data-classes">What a model may be sent</h3>
 <p>Every block your node adds to a model's context is labelled <code>public</code>, <code>internal</code>, <code>confidential</code> or <code>secret</code>, from its text alone and before anything is ranked or sent:</p>
 <ul>
