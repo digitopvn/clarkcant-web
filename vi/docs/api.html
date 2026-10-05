@@ -208,6 +208,7 @@ for (;;) {
   -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
 </div>
 <p>Timeline trả về mọi bước đúng như đã lưu. Khi ứng dụng hiển thị một câu trả lời, từ ba bước làm việc liên tiếp trở lên (lệnh gọi tool, suy luận và các bước kiểm tra đi kèm) được gộp thành một dòng, “Đã làm N bước”, bấm vào để mở ra mọi bước theo đúng thứ tự. Nếu có bước lỗi, dòng đó thêm “· N bước lỗi” màu đỏ, và bên trong, bước lỗi mở sẵn ở lý do của nó. Khi câu trả lời còn đang được viết, bước mới nhất của nó nằm ngoài phần gộp.</p>
+<p>Sau khi bạn duyệt một lệnh trên thẻ, Clark bắt đầu một lượt mới để đọc kết quả của lệnh và làm tiếp. Không ai gõ tin nhắn người dùng mà lượt đó trả lời, nên tin nhắn ấy mang <code>hostWritten: { "kind": "host-continuation", "version": 1 }</code>. Hãy hiển thị tin nhắn như vậy thành một dòng của ClarkCant ("Đã duyệt — Clark tiếp tục"), không phải lời người dùng đã viết, và làm y như vậy với mọi <code>kind</code> hoặc <code>version</code> bạn không nhận ra. Nội dung của nó là thứ model đã đọc. Nó không xuất hiện trong kết quả tìm kiếm, và <code>clarkcant read</code> in nó thành <code>(approved, Clark carries on)</code>.</p>
 
 <h2 id="questions">Trả lời câu hỏi của Clark</h2>
 <p>Khi cần bạn quyết định điều gì, Clark hỏi bằng <code>ask_user_question</code> rồi kết thúc lượt. Câu trả lời của bạn mở một lượt mới. Gửi <code>text</code>, <code>optionIds</code> hoặc <code>confirmed</code> tuỳ theo câu hỏi, hoặc huỷ bằng <code>…/cancel</code>.</p>
