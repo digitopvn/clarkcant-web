@@ -30,10 +30,9 @@ jobs:
       - run: corepack pnpm exec playwright install --with-deps chromium
       - run: |
           cat > /tmp/handles.cjs <<'JS'
-          setTimeout(()=>{const h=process._getActiveHandles().map(x=>{const n=x.constructor?.name;return n==='Socket'||n==='TLSSocket'?n+' '+(x.remoteAddress||'')+':'+(x.remotePort||'')+' '+(x.servername||''):n});console.error('HANDLES',JSON.stringify(h),'REQS',JSON.stringify(process._getActiveRequests().map(r=>r.constructor?.name)))},15000).unref();
+          setTimeout(()=>{console.error('HANDLES',JSON.stringify(process._getActiveHandles().map(x=>x.constructor?.name)))},15000).unref();
           JS
-          NODE_OPTIONS="--require /tmp/handles.cjs" timeout 40 node_modules/.bin/cf d1 migrations list 00000000-0000-4000-8000-000000000000 --local --persist-to /tmp/s1 < /dev/null || echo "exit-default=$?"
-          CF_SEND_TELEMETRY=false timeout 40 node_modules/.bin/cf d1 migrations list 00000000-0000-4000-8000-000000000000 --local --persist-to /tmp/s2 < /dev/null && echo "exit-notelemetry=0" || echo "exit-notelemetry=$?"
-          corepack pnpm db:local
-      - run: corepack pnpm db:seed:browser
+          NODE_OPTIONS="--require=./scripts/cf-local-exit-preload.cjs --require=/tmp/handles.cjs" timeout 40 node_modules/.bin/cf d1 migrations list 00000000-0000-4000-8000-000000000000 --local --persist-to /tmp/s1 < /dev/null && echo "exit-preload=0" || echo "exit-preload=$?"
+      - run: timeout 120 corepack pnpm db:local
+      - run: timeout 120 corepack pnpm db:seed:browser
       - run: corepack pnpm test:e2e
