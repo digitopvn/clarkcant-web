@@ -31,6 +31,16 @@ produces `dist/client` and `dist/server`.
 
 ## Deployment and credentials
 
+`.github/workflows/deploy.yml` deploys every push: `main` goes to production
+(`clarkcant.cc`), `dev` to staging (`staging.clarkcant.cc`). Each run publishes
+the landing page and docs to Pages, then verifies the blog, records a D1 Time Travel
+bookmark (printed in the log), applies pending migrations with `cf` and deploys
+the Worker. Staging has its own Worker (`clarkcant-blog-staging`, `env.staging`
+in `wrangler.production.jsonc`), D1 and R2, so it never touches production data.
+Staging login needs its own GitHub OAuth App (callback
+`https://staging.clarkcant.cc/auth/callback`) stored with the commands below and
+`--worker clarkcant-blog-staging`; until then staging login returns 503.
+
 Create a GitHub OAuth App with homepage `https://clarkcant.cc/blog/` and callback
 `https://clarkcant.cc/auth/callback`. Store its two credentials from hidden
 input so they never land in shell history, a commit or chat:
@@ -45,10 +55,9 @@ are invited in Studio. Local development can use a separate OAuth App pointing
 at `http://127.0.0.1:4322/auth/callback` and ignored `.dev.vars` bindings.
 Without OAuth configuration, login fails closed with 503; public reading works.
 
-Before migrations, record a D1 Time Travel bookmark and keep it private; it is
-the restore point (`cf d1 time-travel restore <database-id> --bookmark <bookmark>`).
-Applied migrations are immutable. The production database ID is in
-`wrangler.production.jsonc`. Then:
+To deploy by hand instead, record a D1 Time Travel bookmark first; it is the
+restore point (`cf d1 time-travel restore <database-id> --bookmark <bookmark>`).
+Applied migrations are immutable. Database IDs are in `wrangler.production.jsonc`. Then:
 
 ```sh
 corepack pnpm exec cf d1 time-travel get-bookmark <database-id>
@@ -56,11 +65,11 @@ corepack pnpm exec cf d1 migrations apply <database-id>
 corepack pnpm deploy
 ```
 
-The optional blog deployment CI needs a separate `CLOUDFLARE_BLOG_API_TOKEN` with
-Worker script/routes, D1 and R2 permissions. The existing Pages token is not
-assumed to have those rights. Migration backup/application is an explicit
-operator prerequisite, not an automatic destructive pipeline step. Roll back
-code using Cloudflare Worker versions; restore an article through History.
+CI needs two repository secrets: `CLOUDFLARE_API_TOKEN` (Pages) and
+`CLOUDFLARE_BLOG_API_TOKEN` (Worker scripts/routes, D1, R2). Write migrations
+so they are safe to apply automatically, and land them on `dev` first. Roll back
+code using Cloudflare Worker versions, data with the bookmark from the deploy log;
+restore an article through History.
 Never import browser test fixtures into production.
 
 For browser tests, build, run `corepack pnpm db:seed:browser` (writes ignored
@@ -88,11 +97,14 @@ Studio. Local dùng app riêng với callback `http://127.0.0.1:4322/auth/callba
 và `.dev.vars` đã bị bỏ qua bởi Git. Thiếu cấu hình OAuth thì đăng nhập trả 503,
 nhưng vẫn đọc được bài công khai.
 
-Trước migration, lấy bookmark D1 Time Travel làm điểm khôi phục và giữ riêng tư.
-Migration đã áp dụng là bất biến. Sau đó chạy migration và deploy như
-trên. CI blog tùy chọn cần `CLOUDFLARE_BLOG_API_TOKEN` có quyền Worker/routes, D1,
-R2; không giả định token Pages có quyền đó. Người vận hành sao lưu và áp dụng
-migration trước khi triển khai. Rollback mã bằng phiên bản Worker; khôi phục bài
+Mỗi lần push, `.github/workflows/deploy.yml` tự deploy: `main` lên production
+(`clarkcant.cc`), `dev` lên staging (`staging.clarkcant.cc`, Worker, D1, R2 riêng).
+CI ghi bookmark D1 Time Travel vào log, áp dụng migration bằng `cf` rồi deploy
+Worker. Migration đã áp dụng là bất biến, nên viết migration an toàn và đưa lên
+`dev` trước. Staging cần GitHub OAuth App riêng (callback
+`https://staging.clarkcant.cc/auth/callback`). CI cần hai secret
+`CLOUDFLARE_API_TOKEN` (Pages) và `CLOUDFLARE_BLOG_API_TOKEN` (Worker/routes, D1,
+R2). Rollback mã bằng phiên bản Worker, dữ liệu bằng bookmark trong log; khôi phục bài
 qua History. Tuyệt đối không nhập dữ liệu kiểm thử vào production.
 
 Kiểm thử trình duyệt: build, chạy `corepack pnpm db:seed:browser` để nạp thông tin

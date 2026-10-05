@@ -28,5 +28,31 @@
     {"pattern":"clarkcant.cc/robots.txt*","zone_name":"clarkcant.cc"},
     {"pattern":"clarkcant.cc/sitemap.xml*","zone_name":"clarkcant.cc"},
     {"pattern":"clarkcant.cc/site-sitemap.xml*","zone_name":"clarkcant.cc"}
-  ]
+  ],
+  // `dev` branch deploys here (wrangler deploy --env staging). Its own D1 and R2, never production data.
+  "env": {
+    "staging": {
+      "name": "clarkcant-blog-staging",
+      "d1_databases": [{"binding":"DB","database_name":"clarkcant-blog-staging","database_id":"d61207f3-1f78-4d79-922c-5f63b766ae74","migrations_dir":"migrations"}],
+      "r2_buckets": [{"binding":"MEDIA","bucket_name":"clarkcant-blog-media-staging"}],
+      "vars": {"SITE_URL":"https://staging.clarkcant.cc","OWNER_GITHUB_ID":"6857382"},
+      "routes": [
+        {"pattern":"staging.clarkcant.cc/blog*","zone_name":"clarkcant.cc"},
+        {"pattern":"staging.clarkcant.cc/vi/blog*","zone_name":"clarkcant.cc"},
+        {"pattern":"staging.clarkcant.cc/assets/blog/*","zone_name":"clarkcant.cc"},
+        {"pattern":"staging.clarkcant.cc/api/blog/*","zone_name":"clarkcant.cc"},
+        {"pattern":"staging.clarkcant.cc/mcp*","zone_name":"clarkcant.cc"},
+        {"pattern":"staging.clarkcant.cc/auth/*","zone_name":"clarkcant.cc"},
+        {"pattern":"staging.clarkcant.cc/oauth/*","zone_name":"clarkcant.cc"},
+        {"pattern":"staging.clarkcant.cc/.well-known/oauth*","zone_name":"clarkcant.cc"},
+        {"pattern":"staging.clarkcant.cc/media/*","zone_name":"clarkcant.cc"},
+        {"pattern":"staging.clarkcant.cc/openapi.json*","zone_name":"clarkcant.cc"},
+        {"pattern":"staging.clarkcant.cc/llms*","zone_name":"clarkcant.cc"},
+        {"pattern":"staging.clarkcant.cc/robots.txt*","zone_name":"clarkcant.cc"},
+        {"pattern":"staging.clarkcant.cc/sitemap.xml*","zone_name":"clarkcant.cc"},
+        {"pattern":"staging.clarkcant.cc/site-sitemap.xml*","zone_name":"clarkcant.cc"}
+      ]
+
+    }
+  }
 }

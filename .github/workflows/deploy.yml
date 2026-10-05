@@ -1,25 +1,32 @@
-# Publishes the site to Cloudflare Pages (project: clarkcant) on every push to main.
-# Needs the repository secret CLOUDFLARE_API_TOKEN, a token with the "Cloudflare Pages: Edit" permission.
+# Deploys on every push: main -> production (clarkcant.cc), dev -> staging (staging.clarkcant.cc).
+# The landing page and docs go to Cloudflare Pages (project: clarkcant); the blog Worker owns
+# only the routes in wrangler.production.jsonc (staging: its `env.staging` block).
+# D1 work uses the cf CLI. Uploads still go through Wrangler until cf can deploy them; see AGENTS.md.
+#
+# Secrets: CLOUDFLARE_API_TOKEN (Pages: Edit) and CLOUDFLARE_BLOG_API_TOKEN
+# (Workers scripts and routes, D1, R2).
 name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   workflow_dispatch:
 
 permissions:
   contents: read
   deployments: write
 
-# A newer push supersedes a deploy still running; the last commit on main is what goes live.
-concurrency:
-  group: deploy-pages
-  cancel-in-progress: true
+env:
+  CLOUDFLARE_ACCOUNT_ID: 009dc0fcd0da3e503fbf38eb2b586e4b
 
 jobs:
-  deploy:
+  site:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # A newer push supersedes a deploy still running; the last commit on the branch is what goes live.
+    concurrency:
+      group: deploy-site-${{ github.ref_name }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
 
@@ -33,11 +40,55 @@ jobs:
       - name: Enable the repository package manager
         run: corepack enable
 
-      # cf does not deploy legacy Pages projects yet; see AGENTS.md.
+      # main is the Pages production branch; dev becomes the dev.clarkcant.pages.dev
+      # alias that staging.clarkcant.cc points at.
       - name: Publish to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: 009dc0fcd0da3e503fbf38eb2b586e4b
-          command: pages deploy public --project-name clarkcant --branch main --commit-hash ${{ github.sha }}
+          accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy public --project-name clarkcant --branch ${{ github.ref_name }} --commit-hash ${{ github.sha }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+  blog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Never cancel mid-deploy: a half-applied migration run must finish.
+    concurrency:
+      group: deploy-blog-${{ github.ref_name }}
+      cancel-in-progress: false
+    env:
+      CLARKCANT_SOURCE: ${{ github.workspace }}/.clarkcant-source
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_BLOG_API_TOKEN }}
+      # Production and staging D1 IDs from wrangler.production.jsonc.
+      D1_ID: ${{ github.ref_name == 'main' && '652ad588-5be3-4879-bf7c-e9c6e964f4b6' || 'd61207f3-1f78-4d79-922c-5f63b766ae74' }}
+      WRANGLER_ENV: ${{ github.ref_name == 'main' && '' || '--env staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: digitopvn/clarkcant
+          ref: b7f9e364a24299317aba94f2b32af76550caa024
+          path: .clarkcant-source
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm install --frozen-lockfile
+        working-directory: .clarkcant-source
+      - run: corepack pnpm build:widgets
+      - run: corepack pnpm verify
+
+      # Restore point: `cf d1 time-travel restore <id> --bookmark <bookmark>` undoes the migration below.
+      - name: Record a D1 restore point
+        timeout-minutes: 5
+        run: corepack pnpm exec cf d1 time-travel get-bookmark "$D1_ID" < /dev/null
+
+      - name: Apply pending D1 migrations
+        timeout-minutes: 5
+        run: corepack pnpm exec cf d1 migrations apply "$D1_ID" < /dev/null
+
+      # Wrangler only until cf can deploy the Astro build; see AGENTS.md.
+      - name: Deploy the blog Worker
+        run: corepack pnpm exec wrangler deploy --config wrangler.production.jsonc $WRANGLER_ENV
