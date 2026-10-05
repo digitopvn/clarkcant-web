@@ -15,7 +15,7 @@
     "verify": "pnpm typecheck && pnpm test && pnpm build",
     "deploy": "pnpm build && wrangler deploy --config wrangler.production.jsonc",
     "db:local": "NODE_OPTIONS=--require=./scripts/cf-local-exit-preload.cjs cf d1 migrations apply 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state",
-    "db:seed:browser": "node test/setup-browser.mjs && NODE_OPTIONS=--require=./scripts/cf-local-exit-preload.cjs cf d1 migrations apply 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state --dir test-results/setup --table browser_test_setup,
+    "db:seed:browser": "node test/setup-browser.mjs && NODE_OPTIONS=--require=./scripts/cf-local-exit-preload.cjs cf d1 migrations apply 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state --dir test-results/setup --table browser_test_setup",
     "cli": "node scripts/blog-cli.mjs",
     "build:widgets": "node scripts/build-widgets.mjs",
     "test:e2e": "playwright test",
