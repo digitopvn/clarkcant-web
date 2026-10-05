@@ -205,6 +205,7 @@ for (;;) {
 <pre><code>curl -s "$CLARKCANT_URL/conversations/&lt;conversationId&gt;/timeline?after=0" \
   -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
 </div>
+<p>After you approve a command on a card, Clark starts a new turn so it can read what the command returned and carry on. Nobody typed the user message that turn answers, so it carries <code>hostWritten: { "kind": "host-continuation", "version": 1 }</code>. Show such a message as a line from ClarkCant ("Approved — Clark carries on"), not as words the person wrote, and do the same for any <code>kind</code> or <code>version</code> you do not recognise. Its text is what the model read. It does not appear in search results, and <code>clarkcant read</code> prints it as <code>(approved, Clark carries on)</code>.</p>
 
 <h2 id="questions">Answer Clark's questions</h2>
 <p>When Clark needs something from you it asks with <code>ask_user_question</code> and ends its turn. Your answer starts a new turn. Send <code>text</code>, <code>optionIds</code> or <code>confirmed</code>, whichever the question calls for, or cancel it with <code>…/cancel</code>.</p>
