@@ -4,7 +4,7 @@ import { articlePage, indexPage, editorPage, escape, pathFor } from './html.ts';
 import { markdown, type Locale } from './document.ts';
 import { Problem, type Environment } from './platform.ts';
 
-const response=(value:string,type='text/html',privatePage=false)=>new Response(value,{headers:{'content-type':`${type}; charset=utf-8`,'cache-control':privatePage?'private, no-store':'no-cache','x-content-type-options':'nosniff','referrer-policy':'strict-origin-when-cross-origin',...(type==='text/html'?{'content-security-policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; media-src 'self' https:; frame-src https://www.youtube-nocookie.com 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'"}:{})}});
+const response=(value:string,type='text/html',privatePage=false)=>new Response(value,{headers:{'content-type':`${type}; charset=utf-8`,'cache-control':privatePage?'private, no-store':'no-cache','x-content-type-options':'nosniff','referrer-policy':'strict-origin-when-cross-origin',...(type==='text/html'?{'content-security-policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; media-src 'self' https:; frame-src https://www.youtube-nocookie.com 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'"}:{})}});
 export async function publicRoute(request:Request,env:Environment):Promise<Response|null> {
   const url=new URL(request.url); const path=url.pathname;
   if(request.method!=='GET' && request.method!=='HEAD') return null;
