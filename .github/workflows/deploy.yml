@@ -33,6 +33,7 @@ jobs:
       - name: Enable the repository package manager
         run: corepack enable
 
+      # cf does not deploy legacy Pages projects yet; see AGENTS.md.
       - name: Publish to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:

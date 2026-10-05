@@ -11,8 +11,6 @@
   -webkit-backdrop-filter: saturate(1.4) blur(14px);
   border-bottom-color: var(--line);
 }
-.docs-tag { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); }
-.docs .site-header__actions { margin-left: auto; }
 .lang-switch {
   display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; height: 2.25rem; padding: 0 0.6rem;
   border-radius: var(--radius-pill); border: 1px solid var(--line); color: var(--text-muted);
@@ -20,10 +18,6 @@
   transition: color var(--dur-micro) ease, border-color var(--dur-micro) ease;
 }
 .lang-switch:hover { color: var(--text); border-color: var(--line-strong); }
-@media (max-width: 560px) {
-  .docs-tag { display: none; }
-  .docs .site-header__actions .button span { display: none; }
-}
 
 .docs-layout {
   max-width: var(--max); margin: 0 auto; padding: var(--space-7) var(--gutter) 0;

@@ -49,13 +49,18 @@ label{display:grid;gap:var(--space-2);font-size:var(--step--1);color:var(--text-
 .brand{display:inline-flex;align-items:center;gap:.6rem;min-height:44px;text-decoration:none;font-weight:520;letter-spacing:-.02em}
 .brand__name{font-size:1.0625rem}
 .brand__name span{color:var(--text-faint);font-weight:420}
-.orb-mark{display:block;flex:none;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 25%,#fff 0,#b8a9ee 14%,#584870 40%,#12121b 70%);box-shadow:inset -2px -2px 4px #0008,0 0 18px var(--halo)}
-.journal-label{display:inline-flex;align-items:center;min-height:44px;padding-left:var(--space-4);border-left:1px solid var(--line-strong);font-family:var(--font-display);font-style:italic;font-size:1.25rem;color:var(--text-muted);text-decoration:none}
-.journal-label:hover{color:var(--text)}
+.orb-mark{display:inline-block;flex:none;width:1.35rem;height:1.35rem;border-radius:50%;background:radial-gradient(ellipse 34% 20% at 36% 30%,rgb(234 244 255/.28),transparent 70%),radial-gradient(ellipse 58% 9% at 50% 51%,rgb(255 255 255/.95),transparent 70%),radial-gradient(ellipse 80% 22% at 50% 51%,rgb(255 216 107/.55),transparent 70%),linear-gradient(90deg,transparent 12%,rgb(130 244 255/.55) 26%,rgb(255 123 255/.5) 66%,rgb(142 108 255/.6) 82%,transparent 92%) center/100% 22% no-repeat,radial-gradient(circle at 50% 50%,#140f2a 0%,#07080f 70%);box-shadow:0 0 0 1px rgb(197 169 255/.3) inset,0 0 12px -2px rgb(149 108 255/.6)}
 .site-nav{display:flex;gap:var(--space-5);margin-left:auto;font-size:.9rem}
-.site-nav a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;color:var(--text-muted);text-decoration:none}
-.site-nav a:hover{color:var(--text)}
-.icon-button{width:2.75rem;min-height:2.75rem;padding:0;border-color:var(--line);color:var(--text-muted);flex:none}
+.site-nav a{display:inline-flex;align-items:center;min-height:44px;white-space:nowrap;color:var(--text-muted);text-decoration:none}
+.site-nav a:hover,.site-nav a[aria-current=page]{color:var(--text)}
+/* Header actions mirror the landing page: theme toggle, then a quiet GitHub pill */
+.site-header__actions{display:flex;align-items:center;gap:var(--space-2)}
+.site-header .button{display:inline-flex;align-items:center;gap:.5rem;min-height:2.25rem;padding:0 .85rem;border:1px solid var(--line-strong);border-radius:var(--radius-pill);color:var(--text);font-size:.875rem;font-weight:500;letter-spacing:-.01em;text-decoration:none;white-space:nowrap}
+.site-header .button:hover{border-color:var(--text-faint)}
+.site-header .button svg{width:1.05rem;height:1.05rem}
+@media (max-width:860px){.site-nav{gap:var(--space-4)}.site-nav a[data-section]{display:none}}
+@media (max-width:560px){.site-header .button span{display:none}.site-header .button{padding:0 .6rem}}
+.icon-button{width:2.25rem;min-height:2.25rem;height:2.25rem;padding:0;border-radius:var(--radius-pill);border-color:var(--line);color:var(--text-muted);flex:none}
 .icon-button:hover{color:var(--text);background:transparent}
 .icon-button svg{width:1.05rem;height:1.05rem;display:none}
 .icon-button:not([data-mode]) .i-system,.icon-button[data-mode=system] .i-system,.icon-button[data-mode=light] .i-light,.icon-button[data-mode=dark] .i-dark{display:block}
@@ -225,8 +230,6 @@ dialog label{margin:var(--space-4) 0}
   .empty-state{grid-template-columns:2.5rem minmax(0,1fr)}
 }
 @media (max-width:640px){
-  .journal-label,.site-nav a:last-child{display:none}
-  .site-nav{gap:var(--space-4)}
   .site-header__inner{gap:var(--space-3)}
   .article-hero{text-align:left}
   .article-hero h1,.dek{margin-inline:0}

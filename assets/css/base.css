@@ -80,13 +80,17 @@ em { font-style: italic; }
 .brand__name { font-size: 1.0625rem; }
 .brand__name span { color: var(--text-faint); font-weight: 420; }
 .site-nav { display: flex; gap: var(--space-5); margin-left: auto; font-size: 0.9rem; }
-.site-nav a { color: var(--text-muted); text-decoration: none; transition: color var(--dur-micro) ease; }
-.site-nav a:hover, .site-nav a[aria-current="true"] { color: var(--text); }
+.site-nav a { color: var(--text-muted); text-decoration: none; white-space: nowrap; transition: color var(--dur-micro) ease; }
+.site-nav a:hover, .site-nav a[aria-current="true"], .site-nav a[aria-current="page"] { color: var(--text); }
 .site-header__actions { display: flex; align-items: center; gap: var(--space-2); }
+.site-header__actions > * { flex: none; }
 @media (max-width: 860px) {
-  .site-nav { display: none; }
-  .site-header__actions { margin-left: auto; }
+  .site-nav { gap: var(--space-4); }
+  .site-nav a[data-section] { display: none; }
+  .site-header__actions { margin-left: 0; }
 }
+/* On a phone the GitHub pill keeps only its mark, the same on every page */
+@media (max-width: 560px) { .site-header .button span { display: none; } .site-header .button { padding: 0 0.6rem; } }
 
 .icon-button {
   width: 2.25rem; height: 2.25rem; display: grid; place-items: center;
