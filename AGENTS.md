@@ -33,6 +33,11 @@ and the site never sees it. `cf d1 query --local` is not implemented, so local S
 goes through `cf d1 migrations apply` with its own `--dir` and `--table`, as
 `db:seed:browser` does.
 
+Local `cf` commands load `scripts/cf-local-exit-preload.cjs` (see the `db:*`
+scripts). `cf` 1.0.0-beta.12 never disposes its local Miniflare, and the
+dev-registry file watcher then keeps Node running forever on Linux CI. Keep the
+preload on any new local `cf` command until a `cf` release fixes this.
+
 ## Where Wrangler is still required
 
 These are the only steps that use Wrangler. Each one stays until `cf` can do it.
