@@ -62,7 +62,8 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_BLOG_API_TOKEN }}
       # Production and staging D1 IDs from wrangler.production.jsonc.
       D1_ID: ${{ github.ref_name == 'main' && '652ad588-5be3-4879-bf7c-e9c6e964f4b6' || 'd61207f3-1f78-4d79-922c-5f63b766ae74' }}
-      WRANGLER_ENV: ${{ github.ref_name == 'main' && '' || '--env staging' }}
+      # Inverted on purpose: an empty string is falsy in Actions expressions, so `cond && '' || x` always yields x.
+      WRANGLER_ENV: ${{ github.ref_name != 'main' && '--env staging' || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
