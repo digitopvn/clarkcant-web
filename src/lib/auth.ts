@@ -46,10 +46,12 @@ export async function authenticate(request:Request,env:Environment):Promise<Prin
 export function requireSessionAuthentication(request:Request) {
   if(request.headers.has('authorization')) throw new Problem(403,'SESSION_REQUIRED','Manage access tokens from the signed-in editor.');
 }
-export async function issueToken(env:Environment,subject:string,scopes:string[],kind:string,ttl=3600) {
+// A token that never expires still dies when it is revoked or its member is deactivated.
+export const NEVER_EXPIRES = 253402300799; // 9999-12-31T23:59:59Z in epoch seconds
+export async function issueToken(env:Environment,subject:string,scopes:string[],kind:string,ttl:number|null=3600) {
   const value = secret();
   await env.DB.prepare('DELETE FROM tokens WHERE rowid IN (SELECT rowid FROM tokens WHERE expires_at<=? LIMIT 100)').bind(seconds()).run();
-  await env.DB.prepare('INSERT INTO tokens(hash,subject,scopes,expires_at,kind,audience) VALUES(?,?,?,?,?,?)').bind(await hash(value),subject,JSON.stringify(scopes),seconds()+ttl,kind,`${env.SITE_URL}/mcp`).run();
+  await env.DB.prepare('INSERT INTO tokens(hash,subject,scopes,expires_at,kind,audience) VALUES(?,?,?,?,?,?)').bind(await hash(value),subject,JSON.stringify(scopes),ttl===null?NEVER_EXPIRES:seconds()+ttl,kind,`${env.SITE_URL}/mcp`).run();
   return value;
 }
 const redirect = (url:string,headers:Record<string,string>={}) => new Response(null,{status:302,headers:{location:url,'cache-control':'no-store',...headers}});

@@ -26,9 +26,10 @@ export async function api(request:Request,env:Environment):Promise<Response> {
     if(path==='/api/blog/me' && request.method==='GET') return json(principal);
     if(path==='/api/blog/tokens' && request.method==='POST') {
       requireSessionAuthentication(request);
-      const input=z.strictObject({scopes:z.array(z.enum(['blog:read','blog:write','blog:publish'])).min(1),days:z.number().int().min(1).max(30)}).parse(await body(request,5000));
+      const input=z.strictObject({scopes:z.array(z.enum(['blog:read','blog:write','blog:publish'])).min(1),days:z.number().int().min(1).max(365).nullable()}).parse(await body(request,5000));
       if(input.scopes.some(s=>!principal.scopes.includes(s))) throw new Problem(403,'FORBIDDEN','Cannot grant scopes your connection does not have.');
-      return json({token:await issueToken(env,principal.subject,input.scopes,'api',input.days*86400),expiresIn:input.days*86400},201);
+      const ttl=input.days===null?null:input.days*86400; // null: no expiry, revocable from Studio
+      return json({token:await issueToken(env,principal.subject,input.scopes,'api',ttl),expiresIn:ttl},201);
     }
     if(path==='/api/blog/tokens/revoke' && request.method==='POST') {
       requireSessionAuthentication(request);
