@@ -172,6 +172,7 @@ legend{font-family:var(--font-display);font-size:var(--step-2);line-height:1.1;m
 .survey-option input{position:absolute;inset:0;width:100%;height:100%;min-height:0;margin:0;opacity:0;cursor:pointer}
 .survey-option::before{content:'';position:absolute;left:var(--space-4);width:16px;height:16px;border:1px solid var(--line-strong);border-radius:50%;background:var(--bg)}
 .survey-option:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.survey-option:has(input[type=checkbox])::before{border-radius:4px}
 .survey-option:has(input:checked)::before{background:var(--accent);border-color:var(--accent);box-shadow:inset 0 0 0 3px var(--bg)}
 .survey-option:has(input:focus-visible){outline:2px solid var(--focus);outline-offset:2px}
 [data-survey] [role=status]{margin:var(--space-3) 0 0;font-size:.875rem;color:var(--text-muted)}
