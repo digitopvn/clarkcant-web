@@ -3,8 +3,8 @@
 The official site for [ClarkCant](https://github.com/digitopvn/clarkcant), the open-source AI agent you just talk to.
 
 The landing page and existing docs remain static. The technical blog uses Astro
-on a scoped Cloudflare Worker, D1 revisions/auth/surveys and R2 media. Reader and
-authoring docs: [English](docs/blog.html) · [Tiếng Việt](vi/docs/blog.html).
+on a scoped Cloudflare Worker, D1 revisions/auth/surveys and R2 media. Publishing
+is for invited members only, so it is documented here rather than in the public docs.
 
 ```bash
 corepack pnpm install --frozen-lockfile

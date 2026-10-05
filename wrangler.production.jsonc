@@ -27,8 +27,6 @@
     {"pattern":"clarkcant.cc/llms*","zone_name":"clarkcant.cc"},
     {"pattern":"clarkcant.cc/robots.txt*","zone_name":"clarkcant.cc"},
     {"pattern":"clarkcant.cc/sitemap.xml*","zone_name":"clarkcant.cc"},
-    {"pattern":"clarkcant.cc/site-sitemap.xml*","zone_name":"clarkcant.cc"},
-    {"pattern":"clarkcant.cc/docs/blog*","zone_name":"clarkcant.cc"},
-    {"pattern":"clarkcant.cc/vi/docs/blog*","zone_name":"clarkcant.cc"}
+    {"pattern":"clarkcant.cc/site-sitemap.xml*","zone_name":"clarkcant.cc"}
   ]
 }
