@@ -28,6 +28,12 @@ jobs:
       - run: corepack pnpm build:widgets
       - run: corepack pnpm verify
       - run: corepack pnpm exec playwright install --with-deps chromium
-      - run: corepack pnpm db:local
+      - run: |
+          timeout 60 node_modules/.bin/cf d1 migrations apply 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state < /dev/null & P=$!
+          sleep 25; echo "--- after 25s"; ps -ef --forest | grep -v grep | grep -A8 -i "cf d1\|workerd" | head -40
+          ls -la ~/.config/cloudflare 2>/dev/null; cat ~/.config/cloudflare/*.json 2>/dev/null | head -20
+          wait $P; echo "exit=$?"
+          rm -rf .wrangler/state
+          CF_SEND_TELEMETRY=false timeout 60 node_modules/.bin/cf d1 migrations apply 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state < /dev/null; echo "exit-notelemetry=$?"
       - run: corepack pnpm db:seed:browser
       - run: corepack pnpm test:e2e
