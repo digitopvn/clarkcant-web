@@ -18,7 +18,11 @@ corepack pnpm verify
 Use Node 22.19+ and Corepack pnpm. Widget builds bundle the canonical renderer
 from the pinned ClarkCant checkout (see CI), not a copied renderer. Production
 configuration is `wrangler.production.jsonc`; local data uses `wrangler.jsonc`.
-Stop a running Wrangler server before rebuilding its output on Windows.
+Stop a running dev server before rebuilding its output on Windows.
+
+Cloudflare operations use the [`cf` CLI](https://blog.cloudflare.com/cloudflare-cf-cli-launch/);
+see [AGENTS.md](AGENTS.md) for the command map and the steps that still
+go through Wrangler until `cf` supports them.
 
 The existing Pages deploy still owns the landing page/docs. The blog Worker
 owns only the routes listed in its production configuration. Do not deploy the
@@ -28,12 +32,12 @@ produces `dist/client` and `dist/server`.
 ## Deployment and credentials
 
 Create a GitHub OAuth App with homepage `https://clarkcant.cc/blog/` and callback
-`https://clarkcant.cc/auth/callback`. Store its two credentials through Wrangler's
-hidden input; never put a secret in a command argument, commit or chat:
+`https://clarkcant.cc/auth/callback`. Store its two credentials from hidden
+input so they never land in shell history, a commit or chat:
 
 ```sh
-corepack pnpm exec wrangler secret put GITHUB_CLIENT_ID --config wrangler.production.jsonc
-corepack pnpm exec wrangler secret put GITHUB_CLIENT_SECRET --config wrangler.production.jsonc
+read -rs VALUE && corepack pnpm exec cf workers secrets update GITHUB_CLIENT_ID --worker clarkcant-blog --type secret_text --text "$VALUE"; unset VALUE
+read -rs VALUE && corepack pnpm exec cf workers secrets update GITHUB_CLIENT_SECRET --worker clarkcant-blog --type secret_text --text "$VALUE"; unset VALUE
 ```
 
 `OWNER_GITHUB_ID` is the numeric GitHub ID of the bootstrap owner. Other members
@@ -41,12 +45,14 @@ are invited in Studio. Local development can use a separate OAuth App pointing
 at `http://127.0.0.1:4322/auth/callback` and ignored `.dev.vars` bindings.
 Without OAuth configuration, login fails closed with 503; public reading works.
 
-Before migrations, export D1 to a private backup (Wrangler may print a signed
-download link; do not share logs). Applied migrations are immutable. Then:
+Before migrations, record a D1 Time Travel bookmark and keep it private; it is
+the restore point (`cf d1 time-travel restore <database-id> --bookmark <bookmark>`).
+Applied migrations are immutable. The production database ID is in
+`wrangler.production.jsonc`. Then:
 
 ```sh
-corepack pnpm exec wrangler d1 export clarkcant-blog --remote --config wrangler.production.jsonc --output .wrangler/backup.sql
-corepack pnpm exec wrangler d1 migrations apply clarkcant-blog --remote --config wrangler.production.jsonc
+corepack pnpm exec cf d1 time-travel get-bookmark <database-id>
+corepack pnpm exec cf d1 migrations apply <database-id>
 corepack pnpm deploy
 ```
 
@@ -57,9 +63,9 @@ operator prerequisite, not an automatic destructive pipeline step. Roll back
 code using Cloudflare Worker versions; restore an article through History.
 Never import browser test fixtures into production.
 
-For browser tests, build, run `node test/setup-browser.mjs`, apply its ignored
-`test-results/setup.sql` to **local** D1, and start Wrangler with
-`--config dist/server/wrangler.json --persist-to <checkout>/.wrangler/state --port 4322`.
+For browser tests, build, run `corepack pnpm db:seed:browser` (writes ignored
+temporary credentials and applies them to **local** D1 only), then serve the build with
+`wrangler dev --config dist/server/wrangler.json --persist-to <checkout>/.wrangler/state --port 4322`.
 Run `corepack pnpm test:e2e`. Tests use Edge locally or Chromium in CI. The
 temporary credentials are ignored and expire after two hours.
 
@@ -70,26 +76,27 @@ Astro/Worker, D1 cho phiên bản, quyền truy cập và khảo sát, R2 cho me
 route trong `wrangler.production.jsonc` chuyển vào Worker. Không đưa thư mục
 server lên Pages. Dùng Node 22.19+, Corepack pnpm và checkout ClarkCant tại commit
 đã ghim trong CI ở `../clarkcant` hoặc biến `CLARKCANT_SOURCE`; widget dùng renderer
-chuẩn, không sao chép. Dừng Wrangler trước khi build lại trên Windows.
+chuẩn, không sao chép. Dừng dev server trước khi build lại trên Windows. Thao tác
+Cloudflare dùng CLI `cf`; xem `AGENTS.md` cho bảng lệnh và các bước còn tạm qua Wrangler.
 
 Chạy lần lượt các lệnh install, build:widgets, db:local, dev và verify phía trên.
 Tạo GitHub OAuth App với homepage `https://clarkcant.cc/blog/`, callback
 `https://clarkcant.cc/auth/callback`. Lưu Client ID và Client Secret bằng hai lệnh
-`wrangler secret put` phía trên qua input ẩn; không ghi secret vào lệnh, commit
+`cf workers secrets update` phía trên qua input ẩn; không ghi secret vào lệnh, commit
 hay chat. `OWNER_GITHUB_ID` là ID số của chủ quản trị; mời thành viên khác trong
 Studio. Local dùng app riêng với callback `http://127.0.0.1:4322/auth/callback`
 và `.dev.vars` đã bị bỏ qua bởi Git. Thiếu cấu hình OAuth thì đăng nhập trả 503,
 nhưng vẫn đọc được bài công khai.
 
-Trước migration, export D1 vào bản sao riêng tư; không chia sẻ log chứa URL tải
-có chữ ký. Migration đã áp dụng là bất biến. Sau đó chạy migration và deploy như
+Trước migration, lấy bookmark D1 Time Travel làm điểm khôi phục và giữ riêng tư.
+Migration đã áp dụng là bất biến. Sau đó chạy migration và deploy như
 trên. CI blog tùy chọn cần `CLOUDFLARE_BLOG_API_TOKEN` có quyền Worker/routes, D1,
 R2; không giả định token Pages có quyền đó. Người vận hành sao lưu và áp dụng
 migration trước khi triển khai. Rollback mã bằng phiên bản Worker; khôi phục bài
 qua History. Tuyệt đối không nhập dữ liệu kiểm thử vào production.
 
-Kiểm thử trình duyệt: build, chạy `node test/setup-browser.mjs`, áp dụng tệp
-`test-results/setup.sql` vào D1 **local**, khởi động Wrangler bằng config trong
+Kiểm thử trình duyệt: build, chạy `corepack pnpm db:seed:browser` để nạp thông tin
+test vào D1 **local**, khởi động `wrangler dev` bằng config trong
 `dist/server` với `--persist-to <checkout>/.wrangler/state --port 4322`, rồi chạy
 `corepack pnpm test:e2e`. Edge được dùng cục bộ, Chromium trên CI. Thông tin xác
 thực kiểm thử bị bỏ qua bởi Git và hết hạn sau hai giờ. Quy trình OAuth thật với

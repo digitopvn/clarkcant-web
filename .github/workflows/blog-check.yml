@@ -29,6 +29,5 @@ jobs:
       - run: corepack pnpm verify
       - run: corepack pnpm exec playwright install --with-deps chromium
       - run: corepack pnpm db:local
-      - run: node test/setup-browser.mjs
-      - run: corepack pnpm exec wrangler d1 execute clarkcant-blog --local --file test-results/setup.sql
+      - run: corepack pnpm db:seed:browser
       - run: corepack pnpm test:e2e

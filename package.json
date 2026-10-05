@@ -14,7 +14,8 @@
     "test": "node --experimental-strip-types --test test/*.test.ts",
     "verify": "pnpm typecheck && pnpm test && pnpm build",
     "deploy": "pnpm build && wrangler deploy --config wrangler.production.jsonc",
-    "db:local": "wrangler d1 migrations apply clarkcant-blog --local",
+    "db:local": "cf d1 migrations apply 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state",
+    "db:seed:browser": "node test/setup-browser.mjs && cf d1 migrations apply 00000000-0000-4000-8000-000000000000 --local --persist-to .wrangler/state --dir test-results/setup --table browser_test_setup",
     "cli": "node scripts/blog-cli.mjs",
     "build:widgets": "node scripts/build-widgets.mjs",
     "test:e2e": "playwright test",
@@ -30,6 +31,7 @@
     "@astrojs/check": "0.9.9",
     "@cloudflare/workers-types": "5.20261004.1",
     "@playwright/test": "1.63.0",
+    "cf": "1.0.0-beta.12",
     "esbuild": "0.28.2",
     "typescript": "5.9.3",
     "wrangler": "4.147.0"

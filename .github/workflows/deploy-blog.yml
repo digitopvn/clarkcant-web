@@ -31,4 +31,5 @@ jobs:
       - run: corepack pnpm build:widgets
       - run: corepack pnpm verify
       # The operator must back up D1 and apply pending migrations before dispatch.
+      # Wrangler only until cf can deploy the Astro build; see AGENTS.md.
       - run: corepack pnpm exec wrangler deploy --config wrangler.production.jsonc
