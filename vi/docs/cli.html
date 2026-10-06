@@ -76,7 +76,18 @@ alias clarkcant="node $PWD/apps/cli/src/main.ts"</code></pre>
 </div>
 
 <h2 id="widget-authoring">Phát triển widget</h2>
-<p>Lệnh tác giả package <code>clark</code> hỗ trợ toàn bộ vòng đời widget từ một bản checkout. Không cần tài khoản runtime hay provider:</p>
+<p>Lệnh tác giả package <code>clark</code> hỗ trợ toàn bộ vòng đời widget. Không cần bản checkout ClarkCant, tài khoản runtime hay provider: lệnh được phát hành trên npm dưới tên <code>@clarkcant/widget-cli</code>, còn SDK an toàn cho trình duyệt là <code>@clarkcant/widget-sdk</code>. Với Node 22.19 trở lên và pnpm (<code>corepack enable pnpm</code>), trên macOS, Windows hoặc Linux:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>mkdir my-widgets &amp;&amp; cd my-widgets
+pnpm init
+pnpm add -D @clarkcant/widget-cli
+pnpm exec clark widget init quick-notes --template pure-ui
+pnpm exec clark widget test quick-notes
+pnpm exec clark widget dev quick-notes      # in URL của dev host; Ctrl-C để dừng
+pnpm exec clark widget pack quick-notes</code></pre>
+</div>
+<p>Từ một bản checkout ClarkCant, các lệnh tương tự chạy trực tiếp từ mã nguồn:</p>
 <div class="code" data-code>
 <button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
 <pre><code>node packages/widget-cli/src/cli.ts widget init ./my-widget --template form
