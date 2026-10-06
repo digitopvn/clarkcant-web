@@ -76,7 +76,18 @@ alias clarkcant="node $PWD/apps/cli/src/main.ts"</code></pre>
 </div>
 
 <h2 id="widget-authoring">Develop a widget</h2>
-<p>The package author command <code>clark</code> supports the widget lifecycle from a checkout. It needs no runtime account or provider:</p>
+<p>The package author command <code>clark</code> supports the widget lifecycle. It needs no ClarkCant checkout, runtime account or provider: it is published on npm as <code>@clarkcant/widget-cli</code>, and the browser-safe SDK as <code>@clarkcant/widget-sdk</code>. With Node 22.19 or later and pnpm (<code>corepack enable pnpm</code>), on macOS, Windows or Linux:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>mkdir my-widgets &amp;&amp; cd my-widgets
+pnpm init
+pnpm add -D @clarkcant/widget-cli
+pnpm exec clark widget init quick-notes --template pure-ui
+pnpm exec clark widget test quick-notes
+pnpm exec clark widget dev quick-notes
+pnpm exec clark widget pack quick-notes</code></pre>
+</div>
+<p>From a ClarkCant checkout, the same commands run from source:</p>
 <div class="code" data-code>
 <button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
 <pre><code>node packages/widget-cli/src/cli.ts widget init ./my-widget --template form
