@@ -98,7 +98,7 @@
     <tr><td><code>ask_clark</code></td><td><code>{ text, conversationId?, title? }</code></td><td>Gửi tin nhắn cho Clark (tạo cuộc trò chuyện nếu chưa có) và trả về câu trả lời của Clark cùng <code>conversationId</code>, <code>resolution</code>, <code>taskId</code>.</td></tr>
     <tr><td><code>list_conversations</code></td><td><code>{}</code></td><td>Liệt kê cuộc trò chuyện.</td></tr>
     <tr><td><code>create_conversation</code></td><td><code>{ title? }</code></td><td>Tạo cuộc trò chuyện.</td></tr>
-    <tr><td><code>read_conversation</code></td><td><code>{ conversationId, after? }</code></td><td>Timeline dạng văn bản kèm nội dung có cấu trúc.</td></tr>
+    <tr><td><code>read_conversation</code></td><td><code>{ conversationId, after? }</code></td><td>Các tin nhắn dạng văn bản, kèm <code>structuredContent: { cursor, hasNewer, messages }</code>. Không có <code>after</code> thì đọc trang mới nhất. Xem <a href="#read-conversation">bên dưới</a>.</td></tr>
     <tr><td><code>answer_question</code></td><td><code>{ conversationId, questionId, text?, optionIds?, confirmed? }</code></td><td>Trả lời câu hỏi mà Clark đặt ra; <code>confirmed</code> dùng cho câu hỏi có/không.</td></tr>
     <tr><td><code>stop_reply</code></td><td><code>{ conversationId }</code></td><td>Giống <code>POST /conversations/{id}/stop</code>: chỉ dừng câu trả lời của cuộc trò chuyện đó và giữ lại phần đã viết.</td></tr>
     <tr><td><code>stop_all_work</code></td><td><code>{}</code></td><td>Giống <code>POST /stop</code>.</td></tr>
@@ -108,6 +108,9 @@
   </tbody>
 </table></div>
 <p class="note"><strong>Cố ý không có tool phê duyệt.</strong> Các quyết định của con người (phê duyệt hành động cần kiểm soát, quyết định năng lực của package, xác nhận ý định với ứng dụng, báo cáo ứng dụng đã làm gì với một hành động agent yêu cầu, tin cậy một peer đã ghép cặp hoặc cấp quyền) nằm trên giao diện của chính người dùng; MCP, WebSocket và <code>clarkcant api</code> từ chối chúng với <code>403 PERSON_ONLY</code>. Một client AI không được tự phê duyệt hành động hay tự nới rộng quyền tin cậy của chính nó. Xuất một bảng trong cuộc trò chuyện ra file CSV cũng bị các relay đó từ chối: file được viết cho người đang xem bảng, không trao cho một client máy. Lưu tệp của một widget bằng Lưu thành, và trao cho widget một tệp người dùng đã chọn, cũng bị từ chối như vậy. Dừng, trả lời câu hỏi và đọc vẫn dùng được; tài liệu discovery liệt kê các route này dưới <code>personDecisions</code>.</p>
+
+<h3 id="read-conversation">Đọc một hội thoại</h3>
+<p><code>read_conversation</code> không có <code>after</code> đọc trang mới nhất (<code>window=latest</code>), nên câu hỏi Clark đang chờ luôn có trong đó dù hội thoại dài đến đâu. <code>structuredContent.cursor</code> của nó là sequence của tin nhắn cuối trên trang: gửi lại nó làm <code>after</code> để chỉ đọc những tin nhắn được viết từ đó. Nó không phải <code>cursor</code> sự kiện của timeline, và không bao giờ vượt quá tin nhắn mới nhất, nên một <code>after</code> cũ hay đoán bừa sẽ trả về sequence của tin nhắn mới nhất và lần đọc sau tự phục hồi. <code>hasNewer</code> cho biết sau trang này vẫn còn tin nhắn; đọc tiếp với cursor mới cho tới khi không còn tin nhắn nào trả về. Lần đọc rỗng ghi <code>No messages after N.</code> Xem <a href="api.html#timeline-window">đọc một hội thoại dài</a>.</p>
 
 <h2 id="raw">JSON-RPC thô</h2>
 <p>MCP client làm việc này thay bạn. Để xem định dạng trên dây, hoặc gọi tool từ script:</p>

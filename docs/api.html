@@ -92,7 +92,7 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
     <tr><td>POST</td><td><code>/conversations/{id}/messages</code></td><td><code>{ text, attachmentIds?, references? }</code></td><td>Waits for the answer; returns <code>{ resolution, taskId, messageIds, timeline }</code>, or <code>202</code> when the work continues in the background (read the timeline later).</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/messages/stream</code></td><td><code>{ text, attachmentIds?, references? }</code></td><td>Streams the reply as Server-Sent Events (below).</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/stop</code></td><td><code>{ source? }</code></td><td>Stops the reply this conversation is writing, and nothing else. What was already written is kept, labelled as stopped. Returns <code>{ stopped }</code>, which is <code>false</code> when no reply was running. A stop is audited with its source (<code>chat</code>, <code>voice</code>, or <code>api</code> when omitted).</td></tr>
-    <tr><td>GET</td><td><code>/conversations/{id}/timeline?after=N</code></td><td>–</td><td>Messages (blocks: text/markdown, tool activity, reasoning, widgets…), pins, widget instances.</td></tr>
+    <tr><td>GET</td><td><code>/conversations/{id}/timeline?after=N</code> · <code>?before=N</code> · <code>?window=latest</code>, each with <code>&amp;limit=</code></td><td>–</td><td>One page of messages (blocks: text/markdown, tool activity, reasoning, widgets…), pins, widget instances. See <a href="#timeline-window">reading a long conversation</a>.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/questions/{questionId}/answer</code></td><td><code>{ text?, optionIds?, confirmed? }</code></td><td>Answers an <code>ask_user_question</code>; starts a new turn.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/questions/{questionId}/cancel</code></td><td>–</td><td>Cancels the question.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/export</code></td><td><code>{ sort?, query?, filters?, columns? }</code></td><td>Downloads a table widget as a CSV file (<code>text/csv</code>, named in <code>Content-Disposition</code>). The rows come from the table's own dataset: the sort, search and filters you send choose them over every column the table shows, exactly as on screen, and <code>columns</code> only picks which of those columns the file carries. The request cannot carry rows. A cell a spreadsheet would run as a formula is prefixed with <code>'</code>. Only the table's owner can export it, and the WebSocket relay, MCP and <code>clarkcant api</code> refuse it with <code>403 PERSON_ONLY</code>.</td></tr>
@@ -210,6 +210,34 @@ for (;;) {
 <p>The timeline returns every step as stored. When the app shows a reply, three or more consecutive working steps (tool calls, reasoning and the checks under them) fold into one line, “Worked through N steps”, which opens on click onto every step in order. If a step failed, the line adds “· N failed” in red, and inside, the failed step opens on its reason. While a reply is still being written, its newest step stays outside the fold.</p>
 <p>After you approve a command on a card, Clark starts a new turn so it can read what the command returned and carry on. Nobody typed the user message that turn answers, so it carries <code>hostWritten: { "kind": "host-continuation", "version": 1 }</code>. Show such a message as a line from ClarkCant ("Approved — Clark carries on"), not as words the person wrote, and do the same for any <code>kind</code> or <code>version</code> you do not recognise. Its text is what the model read. It does not appear in search results, and <code>clarkcant read</code> prints it as <code>(approved, Clark carries on)</code>.</p>
 <p>Each model turn ends with a <code>system-card</code> block whose <code>subject</code> is <code>"connection"</code>: the model note, which records which model answered. Its <code>fields</code> are rows to read, worded in the owner's language when they are written. The same facts are on the block as data, so a client never has to read a row's label: <code>modelNote: { "version": 1, "elapsedMs": &lt;integer ≥ 0&gt;, "fallback"?: { "from": "&lt;provider/model&gt;" } }</code>. <code>elapsedMs</code> is how long the model took, the same figure the time row shows. <code>fallback</code> is there only when a fallback model answered instead of the one the person chose, and <code>from</code> names the chosen one. A card written before the field existed has no <code>modelNote</code>. A client that meets a card without it, with a version it does not know, or with a note it cannot read, falls back on the rows.</p>
+
+<h3 id="timeline-window">Reading a long conversation</h3>
+<p>The timeline route answers one page of a conversation's messages, oldest first, chosen by message sequence: the order your node stores one conversation's messages in.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Query</th><th>Page</th></tr></thead>
+  <tbody>
+    <tr><td>none, or <code>after=N</code></td><td>The messages just after sequence <code>N</code>. None is <code>after=0</code>, the page this route always answered, so existing callers are unchanged.</td></tr>
+    <tr><td><code>before=N</code></td><td>The messages just before sequence <code>N</code>, for scrolling back.</td></tr>
+    <tr><td><code>window=latest</code></td><td>The newest messages, which is what reopening a conversation shows.</td></tr>
+  </tbody>
+</table></div>
+<p>Give at most one of the three. <code>limit</code> sizes the page: 1 to 500, 200 when absent. Anything else is <code>400 INVALID_SCHEMA</code>. Every timeline, from this route or carried in another answer, includes <code>window</code>:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>{ "version": 1, "fromSequence": 1901, "toSequence": 2100, "hasOlder": true, "hasNewer": false, "sequences": [1901, 1902, "..."] }</code></pre>
+</div>
+<p>The page holds every stored message with <code>fromSequence &lt;= sequence &lt;= toSequence</code>, and no other. <code>sequences</code> gives each message's sequence in the order of <code>messages</code>. <code>hasOlder</code> means <code>before=&lt;fromSequence&gt;</code> reads the page that meets this one, and <code>hasNewer</code> means <code>after=&lt;toSequence&gt;</code> does. Two pages whose ranges meet or overlap merge into one range with no message twice and no gap; inside its own range the more recent page is right, so a removed message goes. Pages that do not meet cannot be stitched together, and the numbers tell you so.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>curl -s "$CLARKCANT_URL/conversations/&lt;conversationId&gt;/timeline?window=latest&amp;limit=200" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN"
+
+# Then, for the page before it
+curl -s "$CLARKCANT_URL/conversations/&lt;conversationId&gt;/timeline?before=&lt;fromSequence&gt;" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
+</div>
+<p class="note"><strong>Two different numbers.</strong> The event <code>cursor</code> a timeline also carries says which events a reader has seen, not which messages it holds. It is never a page cursor: page with message sequences only.</p>
+<p>Every answer that carries the conversation answers with its newest page: sending a message, the SSE <code>done</code> event, widget actions, pins, answered questions and cards, and approvals. A widget action's answer also carries the instance it acted on, and every timeline carries the instances of the conversation's pins, wherever their messages are. A reader holding older history merges that page into what it holds instead of starting over.</p>
 
 <h2 id="questions">Answer Clark's questions</h2>
 <p>When Clark needs something from you it asks with <code>ask_user_question</code> and ends its turn. Your answer starts a new turn. Send <code>text</code>, <code>optionIds</code> or <code>confirmed</code>, whichever the question calls for, or cancel it with <code>…/cancel</code>.</p>
