@@ -104,6 +104,9 @@ node apps/cli/src/main.ts ask "how do I connect Cursor to you?"</code></pre>
 <p>Settings → Control offers desktop OS notifications and browser Web Notifications, with per-group toggles and quiet hours. The browser must grant notification permission. Notifications appear only while the app is hidden, unfocused or in orb/compact mode, and their redacted text never includes command lines. Clicking one opens the inbox on its item; an item already dealt with is reported as such.</p>
 <p>If the OS refuses or fails to show a notification, an inline status beside the OS notification toggle explains why and says the item remains in the inbox. It clears after a notification is shown again. Update checks offer only versions the installer accepts on your host and stay silent while the node is offline.</p>
 
+<h2 id="package-directory">Where packages come from</h2>
+<p>When you ask Clark to find a package, the results card lists packages from your own index file, from any catalog your operator added, and from the official ClarkCant Marketplace, which is on by default. Each row names its source, and a source that did not answer is named rather than shown as an empty list. The official Marketplace may list few packages or none yet. A package keeps the source it was installed from: its updates come only from there, and the update notice names that source. Configuration, precedence and the error codes are in <a href="api.html#directory-sources">where package listings come from</a>; hosting your own catalog is in <a href="cli.html#directory-feed">the directory feed</a>.</p>
+
 <h2 id="desktop-window">The desktop window</h2>
 <p>The desktop app reopens the conversation window where you left it: same position and size, maximized or full screen if it was. If that display is no longer attached, or the window would open out of reach, it opens at the default place and size instead. A window remembered from a larger screen is shrunk to fit.</p>
 

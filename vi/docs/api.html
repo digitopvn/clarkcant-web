@@ -412,6 +412,53 @@ api.lifecycle.onDispose(unbind);</code></pre>
 </table></div>
 <p>Yêu cầu không mang cookie, thông tin xác thực hay referrer và dùng một kết nối mới. Tệp vượt qua kiểm tra được lưu thành artifact của cuộc hội thoại, tính vào hạn mức lưu trữ của bạn, và trang phát nó từ node; chính sách nội dung của trang vẫn là <code>media-src 'self' blob:</code>. Các bước kiểm tra loại tệp, kích thước và độ dài cũng áp dụng cho tệp âm thanh mà người dùng đã có sẵn.</p>
 
+<h2 id="directory-sources">Danh sách gói đến từ đâu</h2>
+<p>Thư mục gói mà node của bạn tìm kiếm và cài đặt được ghép từ nhiều nguồn, theo thứ tự ưu tiên sau:</p>
+<ol>
+  <li>tệp chỉ mục JSON do <code>CC_DIRECTORY_INDEX</code> chỉ định;</li>
+  <li>từng feed marketplace hoặc catalog trong <code>CC_DIRECTORY_MARKETPLACES</code>, theo thứ tự đã ghi: các URL <code>https</code> ngăn cách bằng dấu phẩy hoặc khoảng trắng, chỉ cho phép <code>http</code> thường tới loopback của chính máy này;</li>
+  <li>feed của ClarkCant Marketplace chính thức, <code>https://marketplace.clarkcant.cc/api/v1/directory</code>, bật sẵn theo mặc định. Khởi động node với <code>CC_OFFICIAL_MARKETPLACE=off</code> để tắt nó.</li>
+</ol>
+<p class="note"><strong>Feed chính thức còn mới.</strong> Feed đã phản hồi, nhưng chỉ liệt kê những gói mà Marketplace đã lập chỉ mục kèm ID gói ClarkCant, nên hiện có thể chỉ có vài gói hoặc chưa có gói nào. Tệp chỉ mục hay catalog của riêng bạn vẫn hoạt động mà không cần nó.</p>
+<p>Một ID gói thuộc về nguồn đầu tiên liệt kê nó. Listing của nguồn sau cho cùng ID đó bị bỏ ra và được đếm là bị che (shadowed), nên một marketplace không thể thêm phiên bản, hay bản cập nhật, cho gói mà chỉ mục hoặc catalog của bạn đã nêu. Mọi nguồn đều không được tin cậy: listing chỉ là một con trỏ, không thứ gì nó mang theo cấp quyền, và cài nó đi qua <a href="#install">cùng quy trình cài đặt</a>, với các bước kiểm tra phiên bản chính xác và digest, như một listing trong tệp của bạn.</p>
+<p>Một nguồn từ xa chỉ được tải khi có việc cần đến: một lần tìm kiếm, khi bản sao đã cũ hơn 15 phút; một lần cài listing chưa có trong bản sao, khi bản sao cũ hơn một phút; và lần kiểm tra cập nhật, vốn chỉ làm mới những nguồn node đã từng tải. Bản sao tốt gần nhất được giữ trong <code>&lt;dataDir&gt;/directory-cache/</code> kèm thời điểm tải. Một nguồn không phản hồi đầy đủ không bao giờ hiện thành danh sách rỗng như thể “không tìm thấy gì”; nó được báo kèm trạng thái:</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Trạng thái</th><th>Ý nghĩa</th></tr></thead>
+  <tbody>
+    <tr><td><code>stale</code></td><td>Lần làm mới thất bại. Bản sao tốt gần nhất vẫn được liệt kê, kèm lý do.</td></tr>
+    <tr><td><code>not-fetched</code></td><td>Nguồn chưa từng được tải.</td></tr>
+    <tr><td><code>unreachable</code></td><td>Không kết nối được tới nguồn và chưa có bản sao nào trước đó.</td></tr>
+    <tr><td><code>unsupported</code></td><td>Địa chỉ trả về 404, 405 hoặc 501.</td></tr>
+    <tr><td><code>unreadable</code></td><td>Nguồn không phải là một thư mục gói hợp lệ.</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="directory-fail-closed">Nguồn không đọc được vẫn giữ các gói của nó</h3>
+<p>Thứ tự ưu tiên chỉ đứng vững khi các nguồn trước đọc được, nên một nguồn không đọc được không bao giờ nhường ID gói của nó cho nguồn sau:</p>
+<ul>
+  <li>Tệp chỉ mục bị hỏng (ví dụ đang lưu dở khi bạn sửa) làm cả thư mục gói không đọc được. Không tìm kiếm hay cài gì từ marketplace cho tới khi tệp được sửa, vì tệp có thể nêu bất kỳ ID gói nào.</li>
+  <li>Một marketplace hoặc catalog không có gì để liệt kê (chưa tải, không kết nối được, không hỗ trợ hoặc không đọc được, và chưa có bản sao trước đó) vẫn để các nguồn sau được liệt kê, và thẻ tìm kiếm nêu tên nó. Khi đó listing từ nguồn sau chỉ được cài khi bạn bấm Cài trên đúng hàng của nó, hàng này nêu tên nguồn.</li>
+  <li>Khi không nguồn nào đọc được, thư mục gói ở trạng thái không đọc được. Lý do nêu tên từng nguồn, vì sao nó thất bại và cách thiết lập một tệp chỉ mục hoặc một catalog.</li>
+</ul>
+
+<h3 id="directory-search">Kết quả tìm kiếm hiện gì</h3>
+<p>Mỗi hàng của thẻ <code>marketplace-results</code> mang <code>sourceId</code> (<code>local</code>, <code>official</code> hoặc <code>custom-&lt;hash&gt;</code>), và nút Cài gửi lại giá trị này. Khi thẻ chứa nhiều nguồn, mỗi hàng còn mang <code>origin: { kind, label }</code>, trong đó <code>kind</code> là <code>local-file</code>, <code>custom-marketplace</code> hoặc <code>official-marketplace</code>. Thẻ liệt kê từng nguồn không phản hồi đầy đủ trong <code>sources: [{ kind, label, state, fetchedAt?, reason? }]</code>. Tool <code>search_directory</code> của Clark nhận <code>packageId</code> tùy chọn và khi đó liệt kê mọi phiên bản của gói đó kèm chi tiết.</p>
+<p>Một feed chỉ được gọi tên bằng host và đường dẫn của nó. Với địa chỉ không phân tích được, mọi thứ từ dấu <code>?</code> hoặc <code>#</code> đầu tiên và mọi thứ trước dấu <code>@</code> đều bị cắt bỏ, nên token trong địa chỉ feed không bao giờ xuất hiện trong nhãn, thông báo lỗi, thẻ tìm kiếm hay <code>GET /packages</code>.</p>
+
+<h3 id="directory-install-source">Cài từ một nguồn, và bản cập nhật đến từ đâu</h3>
+<p><code>POST /packages/install</code> nhận <code>sourceId</code> tùy chọn: nguồn bạn đã chọn khi bấm Cài trên một hàng. Khi listing chưa có trong bản sao của node, nó làm mới nguồn từ xa một lần. Thư mục gói bổ sung các lần từ chối sau:</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Phản hồi</th><th>Khi nào</th></tr></thead>
+  <tbody>
+    <tr><td><code>404 NOT_IN_DIRECTORY</code></td><td>Không nguồn nào liệt kê gói và phiên bản đó. Thông báo nêu tên mọi nguồn đã không phản hồi.</td></tr>
+    <tr><td><code>409 DIRECTORY_UNREADABLE</code></td><td>Không nguồn nào đọc được, hoặc tệp chỉ mục bị hỏng.</td></tr>
+    <tr><td><code>409 DIRECTORY_SOURCE_UNREAD</code></td><td>Gửi không kèm <code>sourceId</code>, và một nguồn đứng trước không đọc được. Thông báo nêu tên cả hai nguồn.</td></tr>
+    <tr><td><code>409 DIRECTORY_SOURCE_CHANGED</code></td><td>Gửi không kèm <code>sourceId</code>, và gói đang được cài từ một nguồn khác; hoặc gửi kèm, nhưng giờ một nguồn khác đang sở hữu listing đó.</td></tr>
+  </tbody>
+</table></div>
+<p>Node ghi nguồn lên generation đã cài (<code>directorySource</code>). Lần kiểm tra cập nhật chỉ đề xuất phiên bản mới hơn từ chính nguồn đó, và thông báo cập nhật nêu tên nguồn. Muốn chuyển một gói sang nguồn khác, bạn bấm Cài trên hàng của nguồn đó. Gói được cài trước khi nguồn được ghi lại là gói đến từ tệp chỉ mục của bạn, nguồn duy nhất lúc đó: nó chỉ nhận cập nhật từ tệp, không có thông báo cập nhật khi tệp không liệt kê nó, và chỉ chuyển sang nguồn khác khi bạn bấm Cài trên hàng của nguồn đó.</p>
+<p>Một lần cài mà chế độ thực thi hỏi bạn sẽ giữ nguồn đang sở hữu listing tại lúc hỏi. Nếu tới lúc bạn duyệt mà một nguồn khác đã sở hữu nó, kể cả với các byte giống hệt, lần duyệt trả về <code>409 DIRECTORY_SOURCE_CHANGED</code>, không cài gì và câu hỏi rời khỏi hộp thư. Cài lại sẽ hỏi về nguồn mới.</p>
+
 <h2 id="install">Cài một gói</h2>
 <p><code>POST /packages/install</code> cài gói mà bạn đã chọn. Chỉ ứng dụng của chính bạn gọi được route này: MCP, relay WebSocket và <code>clarkcant api</code> nhận <code>403 PERSON_ONLY</code>, và không agent hay tool nào của mô hình cài được gói.</p>
 <p>Với một gói được liệt kê bằng đường dẫn trên máy này, node của bạn tự tính digest các tệp của nó; bạn không cần gửi digest. Listing trên marketplace mang <code>contentDigest</code>, digest của các tệp đó lúc danh sách được tạo, và nút Cài gửi lại nó. Nếu các tệp đã đổi từ đó, lần cài bị từ chối với <code>409 DIGEST_MISMATCH</code>, không có gì được cài hay được hỏi, và ứng dụng mời tìm lại thay vì cùng nút Cài. Lần cài sao chép các tệp vào bộ nhớ đệm gói của node và gói chạy từ bản sao đó, nên những chỉnh sửa sau này với các tệp của nó không thay đổi gì cho tới khi bạn cài lại, và lần cài lại kiểm tra chúng từ đầu. Trong lúc bạn đang làm một gói, <code>clark widget dev</code> là vòng chỉnh sửa trực tiếp. Nếu listing thay đổi dưới một gói đã cài (cùng phiên bản được liệt kê với digest khác, hoặc một phiên bản khác), các tệp, frame và lượt đọc widget của nó trả về <code>409 NOT_INSTALLED</code> cho tới khi bạn cài lại, và các widget của nó giữ nguyên trạng thái. Một đường dẫn không sao chép được các tệp (không đọc được, chứa liên kết tượng trưng hay liên kết cứng, hoặc hơn 5.000 tệp, 5.000 thư mục, thư mục lồng sâu 64 cấp hay 64 MiB) bị từ chối với <code>400 LOCAL_SOURCE_UNREADABLE</code>, còn các tệp thay đổi trong lúc đang được sao chép thì nhận <code>409 DIGEST_MISMATCH</code>, nên bản sao không bao giờ là sự pha trộn của hai phiên bản. Một bản sao mà node không ghi được vào bộ nhớ đệm của chính nó (ví dụ khi ổ đĩa đầy) bị từ chối với <code>503 PACKAGE_CACHE_UNAVAILABLE</code>; các tệp của bạn không bị thay đổi, và bạn có thể thử lại. Các kiểm tra này chạy trước khi chế độ thực thi của bạn quyết định. Client nào gửi <code>localDigest</code> vẫn hoạt động như trước.</p>
@@ -426,6 +473,7 @@ api.lifecycle.onDispose(unbind);</code></pre>
   <li><code>409 DIGEST_MISMATCH</code>: trang gói đã đổi sau khi hỏi. Câu hỏi vẫn mở, và chưa cài gì.</li>
   <li><code>409 DIGEST_MISMATCH</code>, với gói được liệt kê bằng một đường dẫn trên máy bạn: các tệp của gói đã đổi sau khi hỏi. Chưa cài gì và câu hỏi rời khỏi hộp thư. Hãy cài lại để được hỏi về các tệp như hiện tại.</li>
   <li><code>400 LOCAL_SOURCE_UNREADABLE</code>: không đọc được các tệp ở đường dẫn cục bộ, nên bị từ chối ngay khi định hỏi.</li>
+  <li><code>409 DIRECTORY_SOURCE_CHANGED</code>: giờ một nguồn khác trong thư mục gói đang sở hữu listing đó (xem <a href="#directory-install-source">bản cập nhật đến từ đâu</a>). Không cài gì và câu hỏi rời khỏi hộp thư.</li>
   <li><code>403 POLICY_REFUSED</code>: chế độ thực thi của bạn giờ cấm cài.</li>
   <li><code>APPROVAL_FORGED</code>: digest gửi lên không phải digest đã hỏi.</li>
   <li><code>APPROVAL_ALREADY_DECIDED</code>: câu hỏi đã được quyết định rồi, nên bấm lần hai không bao giờ cài hai lần.</li>
