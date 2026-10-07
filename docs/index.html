@@ -98,6 +98,7 @@ node apps/cli/src/main.ts ask "how do I connect Cursor to you?"</code></pre>
   <li><code>/background &lt;request&gt;</code> runs the request as background work beside the conversation and reports back in it.</li>
   <li><code>/report</code> reports a bug or asks for a feature in ClarkCant itself. See <a href="#report">below</a>.</li>
 </ul>
+<p>A skill whose name is also a command's is listed and written as <code>/skill:&lt;name&gt;</code>, so choosing it uses the skill; typing <code>/new</code> yourself still runs the command.</p>
 <p>A command typed in the middle of a sentence is just text. Commands are not sent to the model. See <a href="api.html#provider-sign-in">provider sign-in routes</a>.</p>
 
 <h2 id="report">Report a bug or request a feature</h2>
