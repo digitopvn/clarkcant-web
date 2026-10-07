@@ -130,6 +130,22 @@ npm publish ./my-widget/dist/my-widget-0.1.0.tgz</code></pre>
 </div>
 <p>Hãy phát hành tệp đó thay vì chạy <code>npm publish</code> trong thư mục package, để registry phục vụ đúng các byte mà entry nêu. Sau đó Marketplace liệt kê các package npm mang keyword <code>clarkcant</code>. <code>--source local</code> chuẩn bị entry cho chính thư mục của package, không cần tài khoản npm.</p>
 
+<h3 id="directory-feed">Tự lưu trữ một catalog: feed thư mục gói</h3>
+<p>Một marketplace hoặc catalog phục vụ các entry thư mục gói, đúng loại entry mà <code>clark widget publish</code> chuẩn bị, qua một feed mà node thêm vào bằng <code>CC_DIRECTORY_MARKETPLACES</code> (xem <a href="api.html#directory-sources">danh sách gói đến từ đâu</a>). Feed có thể chia trang:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>GET &lt;feed url&gt;                  → { "format": "clarkcant-directory@1", "entries": [&lt;entry&gt;, …], "nextCursor": "&lt;opaque&gt;" | null }
+GET &lt;feed url&gt;?cursor=&lt;opaque&gt;  → the next page</code></pre>
+</div>
+<p>Một mảng JSON trần, chẳng hạn một tệp tĩnh trên bất kỳ host HTTPS nào, được đọc như feed một trang, nên một tổ chức có thể công bố catalog riêng mà không cần chạy dịch vụ. Các entry được đọc theo đúng quy tắc của tệp chỉ mục, thêm hai điều: listing từ xa không được nêu một đường dẫn trên máy của người đọc (<code>source.kind: "local"</code>), và Marketplace chính thức chỉ liệt kê gói npm. Node đọc feed theo các quy tắc sau:</p>
+<ul>
+  <li>Chỉ <code>https</code>; <code>http</code> thường chỉ được dùng tới loopback của máy đang đọc. Địa chỉ chứa tên người dùng hoặc mật khẩu bị từ chối.</li>
+  <li>Mỗi lần làm mới có giới hạn: 10 giây, 8 MiB mỗi trang, 20 trang và 5.000 entry. Feed vượt một giới hạn bị từ chối toàn bộ.</li>
+  <li>Yêu cầu không mang thông tin xác thực, cookie hay header nhận dạng nào, và không đi theo chuyển hướng.</li>
+  <li>Địa chỉ trả về 404, 405 hoặc 501 được báo là không hỗ trợ (unsupported), còn phản hồi không phải feed hợp lệ được báo là không đọc được (unreadable). Không trường hợp nào được hiểu là catalog rỗng.</li>
+</ul>
+<p>Marketplace chính thức phục vụ cùng định dạng này tại <code>https://marketplace.clarkcant.cc/api/v1/directory</code>. Feed đã hoạt động nhưng chỉ liệt kê những gói đã được lập chỉ mục kèm ID gói ClarkCant, nên hiện có thể chỉ có vài gói hoặc chưa có gói nào.</p>
+
 <h2 id="reference-text-editor">Ứng dụng mẫu: trình soạn thảo văn bản</h2>
 <p><code>examples/reference-apps/text-editor</code> là một widget hoàn chỉnh chỉ dựng trên các hợp đồng widget công khai: một facet UI cách ly, không có service, không xin quyền nào và không yêu cầu capability nào. Bạn mở một tệp văn bản, sửa, lưu và nhờ Clark viết lại một đoạn đang chọn, còn widget không bao giờ biết tệp nằm ở đâu.</p>
 <ul>

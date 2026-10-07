@@ -93,7 +93,7 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
     <tr><td>POST</td><td><code>/conversations/{id}/messages</code></td><td><code>{ text, attachmentIds?, references? }</code></td><td>Waits for the answer; returns <code>{ resolution, taskId, messageIds, timeline }</code>, or <code>202</code> when the work continues in the background (read the timeline later).</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/messages/stream</code></td><td><code>{ text, attachmentIds?, references? }</code></td><td>Streams the reply as Server-Sent Events (below).</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/stop</code></td><td><code>{ source? }</code></td><td>Stops the reply this conversation is writing, and nothing else. What was already written is kept, labelled as stopped. Returns <code>{ stopped }</code>, which is <code>false</code> when no reply was running. A stop is audited with its source (<code>chat</code>, <code>voice</code>, or <code>api</code> when omitted).</td></tr>
-    <tr><td>GET</td><td><code>/conversations/{id}/timeline?after=N</code></td><td>–</td><td>Messages (blocks: text/markdown, tool activity, reasoning, widgets…), pins, widget instances.</td></tr>
+    <tr><td>GET</td><td><code>/conversations/{id}/timeline?after=N</code> · <code>?before=N</code> · <code>?window=latest</code>, each with <code>&amp;limit=</code></td><td>–</td><td>One page of messages (blocks: text/markdown, tool activity, reasoning, widgets…), pins, widget instances. See <a href="#timeline-window">reading a long conversation</a>.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/questions/{questionId}/answer</code></td><td><code>{ text?, optionIds?, confirmed? }</code></td><td>Answers an <code>ask_user_question</code>; starts a new turn.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/questions/{questionId}/cancel</code></td><td>–</td><td>Cancels the question.</td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/widgets/{instanceId}/export</code></td><td><code>{ sort?, query?, filters?, columns? }</code></td><td>Downloads a table widget as a CSV file (<code>text/csv</code>, named in <code>Content-Disposition</code>). The rows come from the table's own dataset: the sort, search and filters you send choose them over every column the table shows, exactly as on screen, and <code>columns</code> only picks which of those columns the file carries. The request cannot carry rows. A cell a spreadsheet would run as a formula is prefixed with <code>'</code>. Only the table's owner can export it, and the WebSocket relay, MCP and <code>clarkcant api</code> refuse it with <code>403 PERSON_ONLY</code>.</td></tr>
@@ -224,6 +224,34 @@ for (;;) {
 <p>After you approve a command on a card, Clark starts a new turn so it can read what the command returned and carry on. Nobody typed the user message that turn answers, so it carries <code>hostWritten: { "kind": "host-continuation", "version": 1 }</code>. Show such a message as a line from ClarkCant ("Approved — Clark carries on"), not as words the person wrote, and do the same for any <code>kind</code> or <code>version</code> you do not recognise. Its text is what the model read. It does not appear in search results, and <code>clarkcant read</code> prints it as <code>(approved, Clark carries on)</code>.</p>
 <p>Each model turn ends with a <code>system-card</code> block whose <code>subject</code> is <code>"connection"</code>: the model note, which records which model answered. Its <code>fields</code> are rows to read, worded in the owner's language when they are written. The same facts are on the block as data, so a client never has to read a row's label: <code>modelNote: { "version": 1, "elapsedMs": &lt;integer ≥ 0&gt;, "fallback"?: { "from": "&lt;provider/model&gt;" } }</code>. <code>elapsedMs</code> is how long the model took, the same figure the time row shows. <code>fallback</code> is there only when a fallback model answered instead of the one the person chose, and <code>from</code> names the chosen one. A card written before the field existed has no <code>modelNote</code>. A client that meets a card without it, with a version it does not know, or with a note it cannot read, falls back on the rows.</p>
 
+<h3 id="timeline-window">Reading a long conversation</h3>
+<p>The timeline route answers one page of a conversation's messages, oldest first, chosen by message sequence: the order your node stores one conversation's messages in.</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Query</th><th>Page</th></tr></thead>
+  <tbody>
+    <tr><td>none, or <code>after=N</code></td><td>The messages just after sequence <code>N</code>. None is <code>after=0</code>, the page this route always answered, so existing callers are unchanged.</td></tr>
+    <tr><td><code>before=N</code></td><td>The messages just before sequence <code>N</code>, for scrolling back.</td></tr>
+    <tr><td><code>window=latest</code></td><td>The newest messages, which is what reopening a conversation shows.</td></tr>
+  </tbody>
+</table></div>
+<p>Give at most one of the three. <code>limit</code> sizes the page: 1 to 500, 200 when absent. Anything else is <code>400 INVALID_SCHEMA</code>. Every timeline, from this route or carried in another answer, includes <code>window</code>:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>{ "version": 1, "fromSequence": 1901, "toSequence": 2100, "hasOlder": true, "hasNewer": false, "sequences": [1901, 1902, "..."] }</code></pre>
+</div>
+<p>The page holds every stored message with <code>fromSequence &lt;= sequence &lt;= toSequence</code>, and no other. <code>sequences</code> gives each message's sequence in the order of <code>messages</code>. <code>hasOlder</code> means <code>before=&lt;fromSequence&gt;</code> reads the page that meets this one, and <code>hasNewer</code> means <code>after=&lt;toSequence&gt;</code> does. Two pages whose ranges meet or overlap merge into one range with no message twice and no gap; inside its own range the more recent page is right, so a removed message goes. Pages that do not meet cannot be stitched together, and the numbers tell you so.</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>curl -s "$CLARKCANT_URL/conversations/&lt;conversationId&gt;/timeline?window=latest&amp;limit=200" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN"
+
+# Then, for the page before it
+curl -s "$CLARKCANT_URL/conversations/&lt;conversationId&gt;/timeline?before=&lt;fromSequence&gt;" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
+</div>
+<p class="note"><strong>Two different numbers.</strong> The event <code>cursor</code> a timeline also carries says which events a reader has seen, not which messages it holds. It is never a page cursor: page with message sequences only.</p>
+<p>Every answer that carries the conversation answers with its newest page: sending a message, the SSE <code>done</code> event, widget actions, pins, answered questions and cards, and approvals. A widget action's answer also carries the instance it acted on, and every timeline carries the instances of the conversation's pins, wherever their messages are. A reader holding older history merges that page into what it holds instead of starting over.</p>
+
 <h2 id="questions">Answer Clark's questions</h2>
 <p>When Clark needs something from you it asks with <code>ask_user_question</code> and ends its turn. Your answer starts a new turn. Send <code>text</code>, <code>optionIds</code> or <code>confirmed</code>, whichever the question calls for, or cancel it with <code>…/cancel</code>.</p>
 <div class="code" data-code>
@@ -241,6 +269,12 @@ for (;;) {
 <p>Every turn records who started it, as the user message's <code>origin</code>: <code>person</code> (your own page, a spoken message, or a card you answered or a widget action you pressed in the page), <code>mcp</code> (MCP <code>ask_clark</code>), <code>relay</code> (the WebSocket relay), <code>cli-api</code> (<code>clarkcant api</code>, a script or any other token holder), <code>automation</code> (a scheduled or standing automation) or <code>peer</code> (a task another node delegated). The node reads it from what the gateway already knows, never from the request body, and writes it on the approval card the turn causes, on its row in <code>GET /activity</code> and in the audit log.</p>
 <p>By default the policy treats every origin like the person: a turn an AI client started over MCP is decided exactly as your own message is. To have programs ask first, opt in under Settings → Control → Requests from other programs, which sets the <code>execution.machineTurns</code> preference to <code>"ask"</code>. Then a risky step (<code>external-write</code>, <code>destructive</code>, <code>financial</code>, <code>communication</code>, <code>media-capture</code>) in a turn started from <code>mcp</code>, <code>relay</code> or <code>cli-api</code> asks first, where the policy would otherwise have run it. A deny rule or a prohibition still wins.</p>
 <p>Approving one step does not approve the rest: after you approve a card a program raised, its next risky step is asked about again. Note that a program holding this node's token can still change this setting, or call the HTTP API directly as you.</p>
+<p><code>channel</code> is reserved for a message from an external messaging app (Telegram, Discord, WhatsApp and the like) bound to a conversation. <strong>No messaging app can be connected yet:</strong> the node has the groundwork, but no provider and no route that accepts channel messages ship in this build, so no turn has this origin today. When one arrives, what the turn may do depends on who sent it, decided from the account they map to and never from a display name or what the message says:</p>
+<ul>
+  <li><strong>You, the owner.</strong> Your own account, or an external account linked to you, acts as you: the turn gets your context and the same execution policy as any other turn, with no extra prompt.</li>
+  <li><strong>Anyone else is a participant.</strong> Their turn gets none of your memory, personal or project instructions, screen context or context files, and runs on a model session of its own. Clark is told the sender is not the owner. Talking and replying in the same thread stays autonomous. Any other tool call runs only when a standing grant on that channel covers the tool, or you approved that exact call; otherwise nothing runs and you are asked on an approval card in the conversation. Approving lets that one call through once. A participant can never decide an approval.</li>
+</ul>
+<p>A user message from a channel also carries <code>authorPrincipalId</code> (whom the sender maps to, so a transcript can tell several speakers apart) and, when it answers a message of this conversation, <code>inReplyToMessageId</code>. Both are optional, set only by the node, and absent on every other message.</p>
 
 <h2 id="notice-actions">Act on a notice</h2>
 <p><code>GET /inbox</code> lists your notices, and each one carries the <code>actions</code> that fit what it names right now. Your node works them out on every read, so an action that can't be taken any more is still listed, with an <code>unavailable</code> reason (<code>conversation-gone</code>, <code>work-gone</code>, <code>package-gone</code> or <code>already-current</code>), instead of a button that fails. Each action goes to a route of its own:</p>
@@ -419,6 +453,53 @@ api.lifecycle.onDispose(unbind);</code></pre>
 </table></div>
 <p>The request carries no cookie, authorization or referrer and uses a fresh connection. A file that passes is stored as an artifact of the conversation against your storage quota, and the page plays it from the node; its content policy stays <code>media-src 'self' blob:</code>. The same checks of type, size and length apply to an audio file the person already holds.</p>
 
+<h2 id="directory-sources">Where package listings come from</h2>
+<p>The directory your node searches and installs from is composed of sources, in this order of precedence:</p>
+<ol>
+  <li>the JSON index file named by <code>CC_DIRECTORY_INDEX</code>;</li>
+  <li>each marketplace or catalog feed in <code>CC_DIRECTORY_MARKETPLACES</code>, in the order given: <code>https</code> URLs separated by commas or spaces, with plain <code>http</code> allowed only to this machine's loopback;</li>
+  <li>the official ClarkCant Marketplace feed, <code>https://marketplace.clarkcant.cc/api/v1/directory</code>, on by default. Start your node with <code>CC_OFFICIAL_MARKETPLACE=off</code> to turn it off.</li>
+</ol>
+<p class="note"><strong>The official feed is new.</strong> It answers, but it lists only packages the Marketplace has indexed with a ClarkCant package id, so it may list few packages or none yet. Your own index file or catalog works without it.</p>
+<p>A package id belongs to the first source that lists it. A later source's listings for the same id are left out and counted as shadowed, so a marketplace cannot add versions, or an update, to a package your own index or catalog names. Every source is untrusted: a listing is only a pointer, nothing it carries grants a permission, and installing it goes through <a href="#install">the same install</a>, with the exact version and digest checks, as a listing in your file.</p>
+<p>A remote source is fetched only when something needs it: a search, when the copy is older than 15 minutes; an install of a listing missing from the copy, when the copy is older than one minute; and the update check, which only refreshes sources your node fetched before. The last good copy is kept under <code>&lt;dataDir&gt;/directory-cache/</code> with the time it was fetched. A source that did not fully answer is never shown as an empty list that reads as “nothing found”; it is reported with its state:</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>State</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>stale</code></td><td>A refresh failed. The last good copy is still listed, with the reason.</td></tr>
+    <tr><td><code>not-fetched</code></td><td>The source was never fetched.</td></tr>
+    <tr><td><code>unreachable</code></td><td>The source cannot be reached and there is no earlier copy.</td></tr>
+    <tr><td><code>unsupported</code></td><td>The address answers 404, 405 or 501.</td></tr>
+    <tr><td><code>unreadable</code></td><td>The source is not a valid directory.</td></tr>
+  </tbody>
+</table></div>
+
+<h3 id="directory-fail-closed">A source that can't be read keeps its packages</h3>
+<p>Precedence holds only while the earlier sources can be read, so a source that can't be read never hands its package ids to a later one:</p>
+<ul>
+  <li>A broken index file (for example, half-saved while you edit it) makes the whole directory unreadable. Nothing is searched or installed from a marketplace until the file is fixed, because the file may name any package id.</li>
+  <li>A marketplace or catalog with nothing to list (not fetched, unreachable, unsupported or unreadable, with no earlier copy) leaves the later sources listed, and the search card names it. A listing from a later source then installs only when you press Install on its row, which names its source.</li>
+  <li>When no source can be read, the directory is unreadable. The reason names each source, says why it failed and says how to set up an index file or a catalog.</li>
+</ul>
+
+<h3 id="directory-search">What a search shows</h3>
+<p>Each row of the <code>marketplace-results</code> card carries <code>sourceId</code> (<code>local</code>, <code>official</code> or <code>custom-&lt;hash&gt;</code>), which the Install button sends back. When the card holds several sources, each row also carries <code>origin: { kind, label }</code>, where <code>kind</code> is <code>local-file</code>, <code>custom-marketplace</code> or <code>official-marketplace</code>. The card lists each source that did not fully answer in <code>sources: [{ kind, label, state, fetchedAt?, reason? }]</code>. Clark's <code>search_directory</code> tool takes an optional <code>packageId</code> and then lists every version of that package with its details.</p>
+<p>A feed is named by its host and path only. For an address that doesn't parse, everything from the first <code>?</code> or <code>#</code> and anything before an <code>@</code> is cut, so a token in a feed address never appears in a label, an error, the search card or <code>GET /packages</code>.</p>
+
+<h3 id="directory-install-source">Install from a source, and where updates come from</h3>
+<p><code>POST /packages/install</code> takes an optional <code>sourceId</code>: the source you chose by pressing Install on a row. When the listing is missing from your node's copy, it refreshes a remote source once. The directory adds these refusals:</p>
+<div class="table-wrap" tabindex="0"><table>
+  <thead><tr><th>Answer</th><th>When</th></tr></thead>
+  <tbody>
+    <tr><td><code>404 NOT_IN_DIRECTORY</code></td><td>No source lists that package and version. The message names any source that did not answer.</td></tr>
+    <tr><td><code>409 DIRECTORY_UNREADABLE</code></td><td>No source could be read, or the index file is broken.</td></tr>
+    <tr><td><code>409 DIRECTORY_SOURCE_UNREAD</code></td><td>Sent without <code>sourceId</code>, and an earlier source could not be read. The message names both sources.</td></tr>
+    <tr><td><code>409 DIRECTORY_SOURCE_CHANGED</code></td><td>Sent without <code>sourceId</code>, and the package is installed from a different source; or sent with one, and another source owns the listing by now.</td></tr>
+  </tbody>
+</table></div>
+<p>Your node records the source on the installed generation (<code>directorySource</code>). The update check offers only that source's newer versions, and the update notice names the source. Moving a package to another source takes pressing Install on that source's row. A package installed before sources were recorded came from your index file, the only source there was: it takes updates only from the file, gets no update notice when the file doesn't list it, and moves to another source only when you press Install on that source's row.</p>
+<p>An install your execution mode asks you about holds the source that owned the listing when you were asked. If another source owns it by the time you approve, even with identical bytes, approving answers <code>409 DIRECTORY_SOURCE_CHANGED</code>, nothing is installed and the question leaves the inbox. Installing again asks about the new source.</p>
+
 <h2 id="install">Install a package</h2>
 <p><code>POST /packages/install</code> installs the package you chose. Only your own app can call it: MCP, the WebSocket relay and <code>clarkcant api</code> get <code>403 PERSON_ONLY</code>, and no agent or model tool can install a package.</p>
 <p>For a package listed by a path on this machine, your node digests its files itself; you don't send a digest. The marketplace listing carries <code>contentDigest</code>, the digest of those files when the list was made, and the Install button sends it back. If the files changed since, the install is refused with <code>409 DIGEST_MISMATCH</code>, nothing is installed or asked, and the app offers to search again instead of the same Install. The install copies the files into your node's package cache and the package runs from that copy, so later edits to its files change nothing until you install it again, and that install checks them anew. While you work on a package, <code>clark widget dev</code> is the live editing loop. If the listing changes under an installed package (the same version listed with another digest, or another version), its files, frames and widget reads answer <code>409 NOT_INSTALLED</code> until you install it again, and its widgets keep their state. A path whose files can't be copied (unreadable, containing symbolic or hard links, or more than 5,000 files, 5,000 folders, folders 64 deep or 64 MiB) is refused with <code>400 LOCAL_SOURCE_UNREADABLE</code>, and files that change while they are being copied give <code>409 DIGEST_MISMATCH</code>, so a copy is never a mix of two versions. A copy your node can't write into its own cache (a full disk, for example) is refused with <code>503 PACKAGE_CACHE_UNAVAILABLE</code>; your files are not changed, and you can try again. These checks run before your execution mode decides. Clients that send <code>localDigest</code> keep working as before.</p>
@@ -433,6 +514,7 @@ api.lifecycle.onDispose(unbind);</code></pre>
   <li><code>409 DIGEST_MISMATCH</code>: the listing changed after the question. The question stays open, and nothing is installed.</li>
   <li><code>409 DIGEST_MISMATCH</code>, for a package listed by a path on your machine: its files changed after the question. Nothing is installed and the question leaves the inbox. Install it again to be asked about the files as they are now.</li>
   <li><code>400 LOCAL_SOURCE_UNREADABLE</code>: the files at a local path can't be read, so the question is refused before it is asked.</li>
+  <li><code>409 DIRECTORY_SOURCE_CHANGED</code>: another directory source owns the listing now (see <a href="#directory-install-source">where updates come from</a>). Nothing is installed and the question leaves the inbox.</li>
   <li><code>403 POLICY_REFUSED</code>: your execution mode now forbids installing.</li>
   <li><code>APPROVAL_FORGED</code>: the digest sent is not the one that was asked about.</li>
   <li><code>APPROVAL_ALREADY_DECIDED</code>: the question was already decided, so a second press never installs twice.</li>

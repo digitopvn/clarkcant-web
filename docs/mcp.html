@@ -98,7 +98,7 @@
     <tr><td><code>ask_clark</code></td><td><code>{ text, conversationId?, title? }</code></td><td>Sends a message to Clark (creates a conversation when none is given) and returns Clark's reply text plus <code>conversationId</code>, <code>resolution</code>, <code>taskId</code>.</td></tr>
     <tr><td><code>list_conversations</code></td><td><code>{}</code></td><td>Lists conversations.</td></tr>
     <tr><td><code>create_conversation</code></td><td><code>{ title? }</code></td><td>Creates a conversation.</td></tr>
-    <tr><td><code>read_conversation</code></td><td><code>{ conversationId, after? }</code></td><td>The timeline as text plus structured content.</td></tr>
+    <tr><td><code>read_conversation</code></td><td><code>{ conversationId, after? }</code></td><td>The messages as text, plus <code>structuredContent: { cursor, hasNewer, messages }</code>. Without <code>after</code>, the newest page. See <a href="#read-conversation">below</a>.</td></tr>
     <tr><td><code>answer_question</code></td><td><code>{ conversationId, questionId, text?, optionIds?, confirmed? }</code></td><td>Answers a question Clark asked; <code>confirmed</code> answers a yes/no question.</td></tr>
     <tr><td><code>stop_reply</code></td><td><code>{ conversationId }</code></td><td>Same as <code>POST /conversations/{id}/stop</code>: stops only that conversation's reply and keeps what it wrote.</td></tr>
     <tr><td><code>stop_all_work</code></td><td><code>{}</code></td><td>Same as <code>POST /stop</code>.</td></tr>
@@ -108,6 +108,9 @@
   </tbody>
 </table></div>
 <p class="note"><strong>No approval tool, on purpose.</strong> A person's decisions (approving a guarded action, deciding a package capability, confirming an app intent, reporting what the app did with an action the agent asked for, trusting a paired peer or issuing a grant) stay on the person's own surfaces, and MCP, the WebSocket and <code>clarkcant api</code> refuse them with <code>403 PERSON_ONLY</code>. An AI client must not be able to approve its own action or widen its own trust. Exporting a table from the conversation as a CSV file is refused on the same relays: the file is written for the person looking at the table, not handed to a machine client. Saving a widget's file with Save As, and handing a widget a file the person chose, are refused the same way. Stop, answering a question and reading stay available; the discovery document lists these routes under <code>personDecisions</code>.</p>
+
+<h3 id="read-conversation">Reading a conversation</h3>
+<p><code>read_conversation</code> without <code>after</code> reads the newest page (<code>window=latest</code>), so a question Clark is waiting on is in it however long the conversation is. Its <code>structuredContent.cursor</code> is the page's last message sequence: pass it back as <code>after</code> to read only the messages written since. It is not the timeline's event <code>cursor</code>, and it never passes the newest message, so a stale or guessed <code>after</code> comes back as the newest message's sequence and the next read recovers. <code>hasNewer</code> says more messages are left after this page; read again with the new cursor until no messages come back. An empty read says <code>No messages after N.</code> See <a href="api.html#timeline-window">reading a long conversation</a>.</p>
 
 <h2 id="raw">Raw JSON-RPC</h2>
 <p>MCP clients do this for you. To see the wire format, or to call the tools from a script:</p>

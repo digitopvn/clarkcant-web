@@ -130,6 +130,22 @@ npm publish ./my-widget/dist/my-widget-0.1.0.tgz</code></pre>
 </div>
 <p>Publish that file rather than running <code>npm publish</code> in the package folder, so the registry serves exactly the bytes the entry names. A Marketplace then lists npm packages that carry the <code>clarkcant</code> keyword. <code>--source local</code> prepares an entry for the package's own folder instead, which needs no npm account.</p>
 
+<h3 id="directory-feed">Host a catalog: the directory feed</h3>
+<p>A marketplace or catalog serves directory entries, the same entries <code>clark widget publish</code> prepares, through a feed that a node adds with <code>CC_DIRECTORY_MARKETPLACES</code> (see <a href="api.html#directory-sources">where package listings come from</a>). The feed may be paged:</p>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>GET &lt;feed url&gt;                  → { "format": "clarkcant-directory@1", "entries": [&lt;entry&gt;, …], "nextCursor": "&lt;opaque&gt;" | null }
+GET &lt;feed url&gt;?cursor=&lt;opaque&gt;  → the next page</code></pre>
+</div>
+<p>A bare JSON array, such as a static file on any HTTPS host, is read as a one-page feed, so an organisation can publish a private catalog without running a service. Entries are read with the same rules as an index file, plus two: a remote listing may not name a path on the reader's machine (<code>source.kind: "local"</code>), and the official Marketplace lists npm packages only. A node reads a feed under these rules:</p>
+<ul>
+  <li><code>https</code> only; plain <code>http</code> only to the reading machine's loopback. An address with a user name or password is refused.</li>
+  <li>One refresh is bounded: 10 s, 8 MiB per page, 20 pages and 5,000 entries. A feed past a bound is refused whole.</li>
+  <li>The request carries no credentials, cookies or identifying headers, and redirects are not followed.</li>
+  <li>An address that answers 404, 405 or 501 is reported as unsupported, and a response that is not a valid feed as unreadable. Neither reads as an empty catalog.</li>
+</ul>
+<p>The official Marketplace serves the same format at <code>https://marketplace.clarkcant.cc/api/v1/directory</code>. It is live but lists only packages it has indexed with a ClarkCant package id, so it may list few packages or none yet.</p>
+
 <h2 id="reference-text-editor">Reference app: a text editor</h2>
 <p><code>examples/reference-apps/text-editor</code> is a whole widget built only on the public widget contracts: one isolated UI facet, with no service, no permissions and no requested capabilities. You open a text file, edit it, save it and ask Clark to rewrite a selection, and the widget never learns where the file lives.</p>
 <ul>
