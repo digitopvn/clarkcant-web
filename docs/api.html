@@ -87,6 +87,7 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
   <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Notes</th></tr></thead>
   <tbody>
     <tr><td>GET</td><td><code>/node</code></td><td>–</td><td>Node id, label, fingerprint and configured model (<code>model</code> is <code>null</code> when none is set).</td></tr>
+    <tr><td>GET</td><td><code>/changelog?since=</code></td><td>–</td><td>What this version of Clark changed. See <a href="#changelog">below</a>.</td></tr>
     <tr><td>GET</td><td><code>/conversations</code></td><td>–</td><td>List conversations.</td></tr>
     <tr><td>POST</td><td><code>/conversations</code></td><td><code>{ title? }</code></td><td><code>201 { conversationId, homeNodeId }</code></td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/messages</code></td><td><code>{ text, attachmentIds?, references? }</code></td><td>Waits for the answer; returns <code>{ resolution, taskId, messageIds, timeline }</code>, or <code>202</code> when the work continues in the background (read the timeline later).</td></tr>
@@ -102,6 +103,18 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
     <tr><td>POST</td><td><code>/stop</code></td><td>–</td><td>Emergency stop: kills running commands, interrupts turns, stops background work.</td></tr>
   </tbody>
 </table></div>
+
+<h2 id="changelog">What's new in this version</h2>
+<p><code>GET /changelog</code> answers the same view as <a href="./#whats-new"><code>/changelog</code> and Settings</a>: <code>{ installed, since?, notesCover?, releases, source }</code>. It reads the release notes embedded with the build, so it works offline, and it is read-only: there is no update status or channel choice. <code>installed</code> carries the version and the channel (<code>stable</code>, <code>beta</code>, or <code>source</code> for a checkout), and <code>releases</code> lists the release records newest first. <code>since</code> keeps only the releases after a version such as <code>1.4</code>. A build run from source adds <code>notesCover</code>, the commit and date its notes reach; changes after that commit are not listed.</p>
+<ul>
+  <li><code>400 INVALID_SCHEMA</code>: <code>since</code> is not a version.</li>
+  <li><code>503 CHANGELOG_UNAVAILABLE</code>: the build carries no readable release notes.</li>
+</ul>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
+<pre><code>curl -s "$CLARKCANT_URL/changelog?since=1.4" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
+</div>
 
 <h2 id="conversation">Start a conversation</h2>
 <div class="code" data-code>

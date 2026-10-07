@@ -87,6 +87,7 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
   <thead><tr><th>Method</th><th>Path</th><th>Body</th><th>Ghi chú</th></tr></thead>
   <tbody>
     <tr><td>GET</td><td><code>/node</code></td><td>–</td><td>Id node, nhãn, fingerprint và model đã cấu hình (<code>model</code> là <code>null</code> khi chưa đặt).</td></tr>
+    <tr><td>GET</td><td><code>/changelog?since=</code></td><td>–</td><td>Phiên bản Clark này đã thay đổi những gì. Xem <a href="#changelog">bên dưới</a>.</td></tr>
     <tr><td>GET</td><td><code>/conversations</code></td><td>–</td><td>Danh sách cuộc trò chuyện.</td></tr>
     <tr><td>POST</td><td><code>/conversations</code></td><td><code>{ title? }</code></td><td><code>201 { conversationId, homeNodeId }</code></td></tr>
     <tr><td>POST</td><td><code>/conversations/{id}/messages</code></td><td><code>{ text, attachmentIds?, references? }</code></td><td>Chờ câu trả lời; trả về <code>{ resolution, taskId, messageIds, timeline }</code>, hoặc <code>202</code> khi việc tiếp tục chạy nền (đọc timeline sau).</td></tr>
@@ -102,6 +103,18 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
     <tr><td>POST</td><td><code>/stop</code></td><td>–</td><td>Dừng khẩn cấp: huỷ các lệnh đang chạy, ngắt lượt trả lời, dừng việc chạy nền.</td></tr>
   </tbody>
 </table></div>
+
+<h2 id="changelog">Phiên bản này có gì mới</h2>
+<p><code>GET /changelog</code> trả về cùng nội dung với <a href="./#whats-new"><code>/changelog</code> và Cài đặt</a>: <code>{ installed, since?, notesCover?, releases, source }</code>. Nó đọc ghi chú phát hành nhúng trong bản build nên dùng được khi không có mạng, và chỉ để đọc: không có trạng thái cập nhật hay lựa chọn kênh. <code>installed</code> mang phiên bản và kênh (<code>stable</code>, <code>beta</code>, hoặc <code>source</code> với bản checkout), còn <code>releases</code> liệt kê các bản ghi phát hành, mới nhất trước. <code>since</code> chỉ giữ các bản phát hành sau một phiên bản như <code>1.4</code>. Bản chạy từ mã nguồn có thêm <code>notesCover</code>, commit và ngày mà ghi chú của nó đạt tới; thay đổi sau commit đó không được liệt kê.</p>
+<ul>
+  <li><code>400 INVALID_SCHEMA</code>: <code>since</code> không phải số phiên bản.</li>
+  <li><code>503 CHANGELOG_UNAVAILABLE</code>: bản build không có ghi chú phát hành đọc được.</li>
+</ul>
+<div class="code" data-code>
+<button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
+<pre><code>curl -s "$CLARKCANT_URL/changelog?since=1.4" \
+  -H "Authorization: Bearer $CLARKCANT_TOKEN"</code></pre>
+</div>
 
 <h2 id="conversation">Tạo cuộc trò chuyện</h2>
 <div class="code" data-code>
