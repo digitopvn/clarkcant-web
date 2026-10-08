@@ -94,7 +94,7 @@ node apps/cli/src/main.ts ask "how do I connect Cursor to you?"</code></pre>
   <li><code>/changelog</code> shows what is new in this version. See <a href="#whats-new">below</a>.</li>
   <li><code>/login</code> signs in to an AI provider from the card, using the provider's account page, a device code or an API key, whichever the provider offers. What you type goes straight to the model runtime; it never appears in the conversation and no later read returns it.</li>
   <li><code>/logout</code> signs out of a provider whose key Clark stored. If a key comes from the environment, such as <code>.env</code> or the shell, the card says so and you remove it there.</li>
-  <li><code>/thinking</code> chooses how hard the next turns think, from a list, or directly: <code>/thinking high</code>, <code>/thinking default</code>. It is the same setting as Settings → AI &amp; Routing → Thinking level.</li>
+  <li><code>/thinking</code> chooses how hard the next turns think, from a list, or directly: <code>/thinking high</code>, or <code>/thinking auto</code> to let the model use its own default. It is the same setting as Settings → AI &amp; Routing → Thinking level.</li>
   <li><code>/background &lt;request&gt;</code> runs the request as background work beside the conversation and reports back in it.</li>
   <li><code>/report</code> reports a bug or asks for a feature in ClarkCant itself. See <a href="#report">below</a>.</li>
   <li><code>/develop</code> chooses a folder to develop a widget from, live in the conversation; <code>/develop &lt;folder&gt;</code> offers that folder, and <code>/develop forget</code> lists the folders you chose so you can take one back. See <a href="cli.html#widget-dev-sessions">developing a widget in the conversation</a>.</li>
