@@ -149,6 +149,7 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
 
 <h2 id="references">Chỉ tới một kỹ năng, một dự án hay một tệp</h2>
 <p>Ngoài phần chữ, một tin nhắn có thể mang tối đa 8 tham chiếu có kiểu: một kỹ năng, một dự án, một tệp hay thư mục trong dự án đã được lập chỉ mục, một dịch vụ MCP, một cuộc trò chuyện khác hoặc một việc nền. Hãy lấy chúng từ <code>GET /composer/suggestions</code> thay vì tự dựng, rồi gửi <code>ref</code> của từng dòng bạn chọn. Hộp thư của ứng dụng cũng gửi theo cách đó một loại nữa, là thông báo, khi bạn dùng Hỏi Clark hoặc Thêm vào ngữ cảnh trên nó.</p>
+<p>Tin nhắn bắt đầu bằng một lệnh gạch chéo, như <code>/new</code>, được trả lời như lệnh đó. Vì vậy hãy viết kỹ năng trong phần chữ thành <code>/&lt;tên&gt;</code>, hoặc thành <code>/skill:&lt;tên&gt;</code> khi tên của nó trùng với một lệnh: kỹ năng tên <code>new</code> được gửi thành <code>/skill:new</code> và được gọi, còn <code>/new</code> thì mở một cuộc trò chuyện mới. Gõ <code>skill:</code> sau dấu gạch chéo (<code>trigger=/&amp;q=skill:ne</code>) thì chỉ liệt kê kỹ năng.</p>
 <div class="code" data-code>
 <button class="code__copy" type="button" data-copy data-copied-label="Đã chép" data-failed-label="Hãy chọn và chép">Sao chép</button>
 <pre><code>curl -s "$CLARKCANT_URL/composer/suggestions?trigger=@&amp;q=myapp/src/" \

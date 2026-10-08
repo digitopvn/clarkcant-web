@@ -149,6 +149,7 @@ export CLARKCANT_TOKEN="&lt;token&gt;"   # localToken from &lt;data-dir&gt;/iden
 
 <h2 id="references">Point at a skill, a project or a file</h2>
 <p>A message can carry up to 8 typed references beside its text: a skill, a project, a file or folder inside an indexed project, an MCP service, another conversation or a piece of background work. Ask <code>GET /composer/suggestions</code> for them rather than building them by hand, and send the <code>ref</code> of each row you choose. The app's inbox sends one more kind the same way, a notice, when you use Ask Clark or Add to context on it.</p>
+<p>A message that starts with a slash command, such as <code>/new</code>, is answered as that command. So write a skill in the text as <code>/&lt;name&gt;</code>, or as <code>/skill:&lt;name&gt;</code> when its name is also a command's: a skill called <code>new</code> goes as <code>/skill:new</code> and is invoked, while <code>/new</code> starts a new conversation. Typing <code>skill:</code> after the slash (<code>trigger=/&amp;q=skill:ne</code>) lists only skills.</p>
 <div class="code" data-code>
 <button class="code__copy" type="button" data-copy data-copied-label="Copied" data-failed-label="Select and copy">Copy</button>
 <pre><code>curl -s "$CLARKCANT_URL/composer/suggestions?trigger=@&amp;q=myapp/src/" \
