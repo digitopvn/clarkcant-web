@@ -87,7 +87,7 @@ node apps/cli/src/main.ts ask "how do I connect Cursor to you?"</code></pre>
 <p class="note"><strong>Approvals are deliberately not exposed to MCP.</strong> Deciding an approval is a human surface. An AI client must not be able to approve its own guarded action, so there is no MCP tool for it.</p>
 
 <h2 id="slash-commands">Slash commands</h2>
-<p>Type <kbd>/</kbd> in the composer to see the commands, listed ahead of your skills. With nothing typed, commands and skills share the list (half each when both have plenty), so your skills are always there too; type a few letters to reach the rest. Each one is answered by Clark in the conversation, as a message with a small card you act on right there, so nothing opens a screen of its own.</p>
+<p>Type <kbd>/</kbd> in the composer to see the commands, listed ahead of your skills. With nothing typed, commands and skills share the list (half each when both have plenty), so your skills are always there too; type a few letters to reach the rest. Each one is answered by Clark in the conversation, as a message with a small card you act on right there, so nothing opens a screen of its own, except <code>/settings</code>, which opens the same Settings dialog the gear opens.</p>
 <ul>
   <li><code>/new</code> starts a new conversation. The current one is kept, and you can reopen it with <code>/sessions</code>.</li>
   <li><code>/sessions</code> lists background work and your earlier conversations, each with <strong>Open</strong>. A conversation Clark is still answering is marked.</li>
@@ -95,6 +95,7 @@ node apps/cli/src/main.ts ask "how do I connect Cursor to you?"</code></pre>
   <li><code>/login</code> signs in to an AI provider from the card, using the provider's account page, a device code or an API key, whichever the provider offers. What you type goes straight to the model runtime; it never appears in the conversation and no later read returns it.</li>
   <li><code>/logout</code> signs out of a provider whose key Clark stored. If a key comes from the environment, such as <code>.env</code> or the shell, the card says so and you remove it there.</li>
   <li><code>/thinking</code> chooses how hard the next turns think, from a list, or directly: <code>/thinking high</code>, <code>/thinking default</code>. It is the same setting as Settings → AI &amp; Routing → Thinking level.</li>
+  <li><code>/settings</code> opens Settings, the same dialog as the gear in the header; <code>/settings &lt;tab&gt;</code> opens it on that tab, such as <code>/settings ai</code> or <code>/settings memory</code>. Closing it returns you to the conversation as you left it.</li>
   <li><code>/background &lt;request&gt;</code> runs the request as background work beside the conversation and reports back in it.</li>
   <li><code>/report</code> reports a bug or asks for a feature in ClarkCant itself. See <a href="#report">below</a>.</li>
   <li><code>/develop</code> chooses a folder to develop a widget from, live in the conversation; <code>/develop &lt;folder&gt;</code> offers that folder, and <code>/develop forget</code> lists the folders you chose so you can take one back. See <a href="cli.html#widget-dev-sessions">developing a widget in the conversation</a>.</li>
