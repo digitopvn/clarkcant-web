@@ -593,7 +593,8 @@ api.lifecycle.onDispose(unbind);</code></pre>
 <ul>
   <li><code>publication.status</code> chỉ là <code>published</code> (<code>mode</code> là <code>created</code> hoặc <code>commented</code>) sau khi đọc lại GitHub và thấy dấu ẩn của báo cáo. Các trạng thái khác là <code>unknown</code>, <code>failed</code>, <code>needs-access</code> (chưa có <code>github_token</code>; kèm <code>manualUrl</code>, trang tạo issue của GitHub đã điền sẵn) và <code>refused</code>.</li>
   <li><code>intent: "check"</code> chỉ tìm dấu và không bao giờ gửi; kiểm tra một báo cáo chưa từng gửi trả <code>409 NOTHING_SENT</code>. Khi GitHub cho thấy không có dấu ít nhất hai phút sau lần thử, báo cáo chuyển thành <code>failed</code> kèm <code>retryable</code>, và gửi lại là gửi nó lần đầu tiên.</li>
-  <li>Khi việc kiểm tra không thể ngã ngũ, báo cáo vẫn là <code>unknown</code> kèm <code>inconclusive: { since, searchUrl, manualUrl }</code>. Chỉ khi đó <code>intent: "send-anyway"</code> mới được nhận (nếu không thì <code>409 NOT_INCONCLUSIVE</code>), và nó có thể gửi báo cáo hai lần.</li>
+  <li>Khi việc kiểm tra không thể ngã ngũ, báo cáo vẫn là <code>unknown</code> kèm <code>inconclusive: { since, searchUrl, manualUrl }</code>. Chỉ khi đó <code>intent: "send-anyway"</code> mới được nhận (nếu không thì <code>409 NOT_INCONCLUSIVE</code>), và nó có thể gửi báo cáo hai lần. Bấm lại sau khi chính lần thử của nó đã đi thì chỉ kiểm tra, như mọi báo cáo còn ở <code>publishing</code> hay <code>unknown</code>.</li>
+  <li>Một cú bấm nhận báo cáo ở trạng thái <code>publishing</code> trước khi node hỏi GitHub bất cứ điều gì, nên cú bấm thứ hai chồng lên một lần gửi đang chạy trên node sẽ trả lời báo cáo đang ở đâu và không gửi gì.</li>
   <li>Báo cáo đã gửi kèm <code>eligibility</code>: Clark có được tự xử lý issue hay không. Trong bản này nó luôn là <code>eligible: false</code> với <code>code: "handling-unavailable"</code>.</li>
 </ul>
 

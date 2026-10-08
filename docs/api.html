@@ -593,7 +593,8 @@ api.lifecycle.onDispose(unbind);</code></pre>
 <ul>
   <li><code>publication.status</code> is <code>published</code> (<code>mode</code> <code>created</code> or <code>commented</code>) only after GitHub is read back holding the report's hidden marker. The other statuses are <code>unknown</code>, <code>failed</code>, <code>needs-access</code> (no <code>github_token</code>; carries <code>manualUrl</code>, GitHub's prefilled new-issue page) and <code>refused</code>.</li>
   <li><code>intent: "check"</code> only looks for the marker and never sends; checking a report never sent answers <code>409 NOTHING_SENT</code>. Once GitHub shows the marker absent at least two minutes after the attempt, the report becomes <code>failed</code> with <code>retryable</code>, and sending it again files it for the first time.</li>
-  <li>When checking cannot settle it, the report stays <code>unknown</code> with <code>inconclusive: { since, searchUrl, manualUrl }</code>. Only then is <code>intent: "send-anyway"</code> accepted (otherwise <code>409 NOT_INCONCLUSIVE</code>), and it may file the report twice.</li>
+  <li>When checking cannot settle it, the report stays <code>unknown</code> with <code>inconclusive: { since, searchUrl, manualUrl }</code>. Only then is <code>intent: "send-anyway"</code> accepted (otherwise <code>409 NOT_INCONCLUSIVE</code>), and it may file the report twice. Pressed again once its own attempt was sent, it only checks, like any report left <code>publishing</code> or <code>unknown</code>.</li>
+  <li>A press takes the report as <code>publishing</code> before the node asks GitHub anything, so a second press that overlaps a send running on the node answers with where the report stands and sends nothing.</li>
   <li>A published report carries <code>eligibility</code>: whether Clark may handle the issue. In this build it is always <code>eligible: false</code> with <code>code: "handling-unavailable"</code>.</li>
 </ul>
 
