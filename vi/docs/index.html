@@ -88,7 +88,7 @@ node apps/cli/src/main.ts ask "how do I connect Cursor to you?"</code></pre>
 <p class="note"><strong>Phê duyệt (approval) cố ý không có trên MCP.</strong> Quyết định phê duyệt là việc của con người. Một client AI không được phép tự phê duyệt hành động cần kiểm soát của chính nó, nên không có tool MCP nào cho việc này.</p>
 
 <h2 id="slash-commands">Lệnh gạch chéo</h2>
-<p>Gõ <kbd>/</kbd> trong ô soạn tin để xem các lệnh, xếp trước các skill của bạn. Khi chưa gõ gì, lệnh và skill chia nhau danh sách (mỗi loại một nửa khi cả hai đều nhiều), nên skill của bạn luôn có mặt; gõ thêm vài chữ để tìm những mục còn lại. Clark trả lời mỗi lệnh ngay trong cuộc trò chuyện, bằng một tin nhắn kèm thẻ nhỏ để bạn thao tác tại chỗ, nên không lệnh nào mở màn hình riêng.</p>
+<p>Gõ <kbd>/</kbd> trong ô soạn tin để xem các lệnh, xếp trước các skill của bạn. Khi chưa gõ gì, lệnh và skill chia nhau danh sách (mỗi loại một nửa khi cả hai đều nhiều), nên skill của bạn luôn có mặt; gõ thêm vài chữ để tìm những mục còn lại. Clark trả lời mỗi lệnh ngay trong cuộc trò chuyện, bằng một tin nhắn kèm thẻ nhỏ để bạn thao tác tại chỗ, nên không lệnh nào mở màn hình riêng, trừ <code>/settings</code>, lệnh mở đúng hộp thoại Cài đặt mà nút bánh răng mở.</p>
 <ul>
   <li><code>/new</code> bắt đầu cuộc trò chuyện mới. Cuộc hiện tại vẫn được giữ, mở lại bằng <code>/sessions</code>.</li>
   <li><code>/sessions</code> liệt kê việc nền và các cuộc trò chuyện trước, mỗi mục có nút <strong>Mở</strong>. Cuộc trò chuyện Clark vẫn đang trả lời được đánh dấu.</li>
@@ -96,6 +96,7 @@ node apps/cli/src/main.ts ask "how do I connect Cursor to you?"</code></pre>
   <li><code>/login</code> đăng nhập AI provider ngay trong thẻ, bằng trang tài khoản của provider, mã thiết bị hoặc API key, tuỳ provider hỗ trợ cách nào. Những gì bạn nhập đi thẳng tới runtime của model; nó không bao giờ hiện trong cuộc trò chuyện và không lần đọc nào sau đó trả lại nó.</li>
   <li><code>/logout</code> đăng xuất khỏi provider mà Clark đã lưu khoá. Nếu khoá lấy từ môi trường, như <code>.env</code> hoặc shell, thẻ sẽ nói rõ và bạn gỡ nó ở đó.</li>
   <li><code>/thinking</code> chọn mức suy nghĩ cho các lượt sau, từ danh sách, hoặc gõ trực tiếp: <code>/thinking high</code>, hoặc <code>/thinking auto</code> để model tự dùng mức mặc định của nó. Đây cũng là thiết lập Cài đặt → AI &amp; Định tuyến → Mức suy nghĩ.</li>
+  <li><code>/settings</code> mở Cài đặt, cùng hộp thoại với nút bánh răng trên thanh đầu trang; <code>/settings &lt;tab&gt;</code> mở thẳng tab đó, như <code>/settings ai</code> hoặc <code>/settings memory</code>. Đóng lại thì bạn trở về cuộc trò chuyện đúng như lúc rời đi.</li>
   <li><code>/background &lt;yêu cầu&gt;</code> chạy yêu cầu thành việc nền bên cạnh cuộc trò chuyện và báo kết quả trong đó.</li>
   <li><code>/report</code> báo lỗi hoặc đề xuất tính năng cho chính ClarkCant. Xem <a href="#report">bên dưới</a>.</li>
   <li><code>/develop</code> chọn một thư mục để phát triển widget ngay trong hội thoại; <code>/develop &lt;thư mục&gt;</code> đề xuất đúng thư mục đó, và <code>/develop forget</code> liệt kê các thư mục bạn đã chọn để bạn thu hồi. Xem <a href="cli.html#widget-dev-sessions">phát triển widget trong hội thoại</a>.</li>
